@@ -11,7 +11,12 @@ const Collision = (() => {
     }
     return false;
   }
-  function sameCell(a, b) { return a.x === b.x && a.y === b.y; }
+  function sameCell(a, b) {
+    return !!(a && b && a.x === b.x && a.y === b.y);
+  }
+  function cellIn(pos, list) {
+    return !!(list && list.some(o => o.x === pos.x && o.y === pos.y));
+  }
 
-  return { isWall, isSelf, sameCell };
+  return { isWall, isSelf, sameCell, cellIn };
 })();

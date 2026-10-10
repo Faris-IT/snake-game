@@ -3,38 +3,36 @@
   let currentModeId = "classic";
   let currentModeName = "Classic Snack";
 
-  // Resize awal
   Renderer.resize(CONFIG.GRID_COLS, CONFIG.GRID_ROWS);
 
-  // Bangun menu
   UI.buildMenu((id, name) => {
     currentModeId = id;
     currentModeName = name;
     startGame();
   });
 
+  function refreshHud() {
+    const s = GameEngine.state;
+    const mode = s.mode;
+    const objective = mode && mode.getObjective ? mode.getObjective(GameEngine.makeCtx()) : "";
+    UI.updateHUD({
+      score: s.score,
+      best: Scoring.getBest(currentModeId),
+      modeName: currentModeName,
+      objective,
+    });
+  }
+
   function startGame() {
     UI.showScreen("game");
     UI.hideOverlay();
     Renderer.resize(CONFIG.GRID_COLS, CONFIG.GRID_ROWS);
     GameEngine.reset(currentModeId);
-    UI.updateHUD({
-      score: 0,
-      best: Scoring.getBest(currentModeId),
-      modeName: currentModeName,
-      objective: "Kumpulkan snack sebanyak mungkin",
-    });
+    refreshHud();
   }
 
-  // Callback engine
-  GameEngine.state.onScoreChange = (score) => {
-    UI.updateHUD({
-      score,
-      best: Scoring.getBest(currentModeId),
-      modeName: currentModeName,
-      objective: "Kumpulkan snack sebanyak mungkin",
-    });
-  };
+  GameEngine.state.onScoreChange = () => refreshHud();
+  GameEngine.state.onHudChange   = () => refreshHud();
 
   GameEngine.state.onGameOver = (score) => {
     const isRecord = Scoring.submitScore(currentModeId, score);
@@ -43,14 +41,23 @@
       sub: isRecord ? `🎉 Rekor baru! Skor ${score}` : `Skor akhir: ${score}`,
       actions: [
         { label: "Main Lagi", onClick: startGame },
-        { label: "Menu", ghost: true, onClick: () => {
-            UI.hideOverlay(); UI.showScreen("menu");
-        }},
+        { label: "Menu", ghost: true, onClick: () => { UI.hideOverlay(); UI.showScreen("menu"); } },
       ],
     });
   };
 
-  // Pause toggle
+  GameEngine.state.onVictory = (score) => {
+    const isRecord = Scoring.submitScore(currentModeId, score);
+    UI.showOverlay({
+      title: "Victory! 🏆",
+      sub: isRecord ? `🎉 Rekor baru! Skor ${score}` : `Skor akhir: ${score}`,
+      actions: [
+        { label: "Main Lagi", onClick: startGame },
+        { label: "Menu", ghost: true, onClick: () => { UI.hideOverlay(); UI.showScreen("menu"); } },
+      ],
+    });
+  };
+
   window.addEventListener("mufa:toggle-pause", () => {
     const s = GameEngine.state.status;
     if (s === "playing") {
@@ -60,9 +67,7 @@
         sub: "Tekan Space untuk melanjutkan",
         actions: [
           { label: "Lanjut", onClick: () => { UI.hideOverlay(); GameEngine.resume(); } },
-          { label: "Menu", ghost: true, onClick: () => {
-              UI.hideOverlay(); UI.showScreen("menu");
-          }},
+          { label: "Menu", ghost: true, onClick: () => { UI.hideOverlay(); UI.showScreen("menu"); } },
         ],
       });
     } else if (s === "paused") {
@@ -75,10 +80,8 @@
     window.dispatchEvent(new CustomEvent("mufa:toggle-pause"));
   });
 
-  // Input touch
   Input.attachSwipe(document.getElementById("canvas"));
   Input.attachButtons(document.getElementById("mobile-controls"));
 
-  // Mulai loop
   GameEngine.start();
 })();

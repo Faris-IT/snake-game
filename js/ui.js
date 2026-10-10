@@ -15,7 +15,7 @@ const UI = (() => {
 
   function buildMenu(onPick) {
     modeList.innerHTML = "";
-    MODES.forEach((m) => {
+    ModeRegistry.list().forEach((m) => {
       const card = document.createElement("button");
       card.className = "mode-card";
       card.disabled = !m.ready;
@@ -33,10 +33,10 @@ const UI = (() => {
   }
 
   function updateHUD({ score, best, modeName, objective }) {
-    hudScore.textContent = score;
-    hudBest.textContent  = best;
-    hudMode.textContent  = modeName;
-    hudObj.textContent   = objective || "";
+    hudScore.textContent = score ?? 0;
+    hudBest.textContent  = best ?? 0;
+    hudMode.textContent  = modeName ?? "";
+    hudObj.textContent   = objective ?? "";
   }
 
   function showOverlay({ title, sub, actions }) {
