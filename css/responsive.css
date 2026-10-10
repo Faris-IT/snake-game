@@ -1,0 +1,8 @@
+@media (max-width: 720px) {
+  .hud-value { font-size: .95rem; }
+  .menu-modes { grid-template-columns: 1fr 1fr; }
+}
+
+@media (pointer: coarse) {
+  .mobile-controls { display: block; }
+}

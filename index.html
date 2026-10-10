@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mufa Snack — Mufa Games</title>
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ===== MENU SCREEN ===== -->
+    <section id="screen-menu" class="screen active">
+      <div class="menu-wrap">
+        <h1 class="logo">MUFA<span>SNACK</span></h1>
+        <p class="tagline">Arcade · Snake · Strategy · Survival</p>
+        <div class="menu-modes" id="mode-list"></div>
+        <div class="menu-footer">
+          <button class="btn ghost" id="btn-stats">Statistik</button>
+          <button class="btn ghost" id="btn-settings">Pengaturan</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== GAME SCREEN ===== -->
+    <section id="screen-game" class="screen">
+      <header class="hud">
+        <div class="hud-left">
+          <div class="hud-item">
+            <span class="hud-label">SKOR</span>
+            <span class="hud-value" id="hud-score">0</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">MODE</span>
+            <span class="hud-value" id="hud-mode">Classic</span>
+          </div>
+        </div>
+        <div class="hud-center" id="hud-objective"></div>
+        <div class="hud-right">
+          <div class="hud-item">
+            <span class="hud-label">BEST</span>
+            <span class="hud-value" id="hud-best">0</span>
+          </div>
+          <button class="btn icon" id="btn-pause" aria-label="Jeda">⏸</button>
+        </div>
+      </header>
+
+      <div class="arena-wrap">
+        <canvas id="canvas"></canvas>
+        <div class="overlay" id="overlay" hidden>
+          <div class="overlay-card">
+            <h2 id="overlay-title">Jeda</h2>
+            <p id="overlay-sub"></p>
+            <div class="overlay-actions" id="overlay-actions"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-controls" id="mobile-controls">
+        <button class="dpad up"    data-dir="up">▲</button>
+        <button class="dpad left"  data-dir="left">◀</button>
+        <button class="dpad right" data-dir="right">▶</button>
+        <button class="dpad down"  data-dir="down">▼</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/scoring.js"></script>
+  <script src="js/collision.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/game-engine.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
