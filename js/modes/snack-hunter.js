@@ -8,27 +8,27 @@ ModeRegistry.register({
 
   onStart(ctx) {
     ctx.targetSnacks = 20;
-    ctx._bonusActive = false;
-    ctx._bonusTimer = 0;
-    ctx._bonusAge = 0;
-    ctx._bonusInterval = 8000;
-    ctx._bonusLife = 5000;
+    ctx._shBonusActive = false;
+    ctx._shBonusTimer = 0;
+    ctx._shBonusAge = 0;
+    ctx._shBonusInterval = 8000;
+    ctx._shBonusLife = 5000;
   },
 
   onTick(ctx, dt) {
-    if (!ctx._bonusActive) {
-      ctx._bonusTimer += dt;
-      if (ctx._bonusTimer >= ctx._bonusInterval) {
-        ctx._bonusTimer = 0;
+    if (!ctx._shBonusActive) {
+      ctx._shBonusTimer += dt;
+      if (ctx._shBonusTimer >= ctx._shBonusInterval) {
+        ctx._shBonusTimer = 0;
         ctx.spawnBonusRandom();
-        ctx._bonusActive = true;
-        ctx._bonusAge = 0;
+        ctx._shBonusActive = true;
+        ctx._shBonusAge = 0;
       }
     } else {
-      ctx._bonusAge += dt;
-      if (ctx._bonusAge >= ctx._bonusLife) {
+      ctx._shBonusAge += dt;
+      if (ctx._shBonusAge >= ctx._shBonusLife) {
         ctx.clearBonus();
-        ctx._bonusActive = false;
+        ctx._shBonusActive = false;
       }
     }
   },
@@ -39,27 +39,22 @@ ModeRegistry.register({
       ctx.targetSnacks--;
     } else if (kind === "bonus") {
       ctx.score += CONFIG.SCORE_BONUS;
-      ctx._bonusActive = false;
-      ctx._bonusTimer = 0;
+      ctx._shBonusActive = false;
+      ctx._shBonusTimer = 0;
     }
   },
 
-  isWin(ctx) {
-    return ctx.targetSnacks <= 0;
-  },
-
-  isLose(ctx) {
-    return ctx.lives <= 0;
-  },
+  isWin(ctx)  { return ctx.targetSnacks <= 0; },
+  isLose(ctx) { return ctx.lives <= 0; },
 
   onCollision(ctx, type) {
     ctx.lives--;
     if (ctx.lives <= 0) {
       GameEngine.helpers.endGame();
     } else {
-      resetSnake(ctx);
+      resetSnakeHunter(ctx);
     }
-    return true; // hentikan tick, kita sudah handle
+    return true;
   },
 
   getObjective(ctx) {
@@ -68,7 +63,7 @@ ModeRegistry.register({
   },
 });
 
-function resetSnake(ctx) {
+function resetSnakeHunter(ctx) {
   const cx = Math.floor(ctx.cols / 2);
   const cy = Math.floor(ctx.rows / 2);
   ctx.body = [];

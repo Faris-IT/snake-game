@@ -16,20 +16,13 @@ const Renderer = (() => {
   function clearGrid(cols, rows) {
     ctx.fillStyle = CONFIG.COLORS.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     ctx.strokeStyle = CONFIG.COLORS.grid;
     ctx.lineWidth = 1;
     for (let x = 0; x <= cols; x++) {
-      ctx.beginPath();
-      ctx.moveTo(x * cell + 0.5, 0);
-      ctx.lineTo(x * cell + 0.5, rows * cell);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x * cell + 0.5, 0); ctx.lineTo(x * cell + 0.5, rows * cell); ctx.stroke();
     }
     for (let y = 0; y <= rows; y++) {
-      ctx.beginPath();
-      ctx.moveTo(0, y * cell + 0.5);
-      ctx.lineTo(cols * cell, y * cell + 0.5);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y * cell + 0.5); ctx.lineTo(cols * cell, y * cell + 0.5); ctx.stroke();
     }
   }
 
@@ -43,6 +36,24 @@ const Renderer = (() => {
     ctx.closePath();
   }
 
+  function drawTiles(tiles) {
+    if (!tiles || !tiles.length) return;
+    for (const t of tiles) {
+      const px = t.x * cell;
+      const py = t.y * cell;
+      let fill = null;
+      if (t.kind === "danger")       fill = "rgba(255, 77, 94, 0.35)";
+      else if (t.kind === "warning") fill = "rgba(255, 200, 60, 0.35)";
+      else if (t.kind === "red")     fill = "rgba(255, 77, 94, 0.30)";
+      else if (t.kind === "blue")    fill = "rgba(46, 230, 255, 0.30)";
+      else if (t.kind === "green")   fill = "rgba(62, 245, 139, 0.30)";
+      else if (t.kind === "purple")  fill = "rgba(180, 120, 255, 0.30)";
+      if (!fill) continue;
+      ctx.fillStyle = fill;
+      ctx.fillRect(px + 1, py + 1, cell - 2, cell - 2);
+    }
+  }
+
   function drawObstacles(list) {
     if (!list || !list.length) return;
     ctx.fillStyle = CONFIG.COLORS.obstacle;
@@ -50,6 +61,38 @@ const Renderer = (() => {
       roundRect(o.x * cell + 1, o.y * cell + 1, cell - 2, cell - 2, 3);
       ctx.fill();
     }
+  }
+
+  function drawPortals(portals) {
+    if (!portals || !portals.length) return;
+    // 4 warna untuk 4 pasangan
+    const pairColors = ["#b478ff", "#ff8c42", "#2ee6ff", "#ff5fa2"];
+    portals.forEach((p, i) => {
+      const c = pairColors[i % pairColors.length];
+      [p.a, p.b].forEach((pos) => {
+        if (!pos) return;
+        const cx = pos.x * cell + cell / 2;
+        const cy = pos.y * cell + cell / 2;
+        const r  = cell * 0.42;
+
+        // Lingkaran luar
+        ctx.strokeStyle = c;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Isi transparan
+        ctx.fillStyle = c + "40";
+        ctx.fill();
+
+        // Lingkaran dalam (denyut)
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.45, 0, Math.PI * 2);
+        ctx.fillStyle = c + "90";
+        ctx.fill();
+      });
+    });
   }
 
   function drawExit(pos, unlocked) {
@@ -82,12 +125,10 @@ const Renderer = (() => {
     const cx = snack.x * cell + cell / 2;
     const cy = snack.y * cell + cell / 2;
     const r  = cell * 0.32;
-    ctx.fillStyle = snack.kind === "bonus" ? CONFIG.COLORS.bonus : CONFIG.COLORS.snack;
-    ctx.shadowColor = ctx.fillStyle;
+    ctx.fillStyle = CONFIG.COLORS.snack;
+    ctx.shadowColor = CONFIG.COLORS.snack;
     ctx.shadowBlur = 12;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
   }
 
@@ -99,19 +140,48 @@ const Renderer = (() => {
     ctx.fillStyle = CONFIG.COLORS.bonus;
     ctx.shadowColor = CONFIG.COLORS.bonus;
     ctx.shadowBlur = 16;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
+    // Tanda tanya
+    ctx.fillStyle = "#1a1a1a";
+    ctx.font = `${Math.floor(cell * 0.55)}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("?", cx, cy + 1);
+  }
+
+  function drawBlindOverlay(state) {
+    if (!state._blindOverlay) return;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.80)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // "Lubang cahaya" di sekitar kepala
+    const head = state.body[0];
+    if (head) {
+      const cx = head.x * cell + cell / 2;
+      const cy = head.y * cell + cell / 2;
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-out";
+      const grd = ctx.createRadialGradient(cx, cy, cell * 0.5, cx, cy, cell * 2.5);
+      grd.addColorStop(0, "rgba(0,0,0,1)");
+      grd.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(cx, cy, cell * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   function render(state) {
     clearGrid(state.cols, state.rows);
+    drawTiles(state.tiles);
     drawObstacles(state.obstacles);
+    drawPortals(state.portals);
     drawExit(state.exit, state.exitUnlocked);
     drawSnack(state.snack);
     drawBonus(state.bonus);
     drawSnake(state.body);
+    drawBlindOverlay(state);
   }
 
   return { resize, render, getCell: () => cell };

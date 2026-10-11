@@ -1,7 +1,7 @@
 // ===== Game Engine (mendukung sistem mode) =====
 const GameEngine = (() => {
   const state = {
-    status: "menu",           // menu | playing | paused | game-over | victory
+    status: "menu",
     cols: CONFIG.GRID_COLS,
     rows: CONFIG.GRID_ROWS,
     body: [],
@@ -10,6 +10,8 @@ const GameEngine = (() => {
     snack: null,
     bonus: null,
     obstacles: [],
+    tiles: [],
+    portals: [],
     exit: null,
     exitUnlocked: false,
     score: 0,
@@ -30,12 +32,13 @@ const GameEngine = (() => {
     onHudChange: null,
   };
 
-  // ===== Helper yang diekspos ke mode via ctx =====
   const helpers = {
     spawnSnackAt(pos) { state.snack = pos; },
     spawnSnackRandom() { state.snack = GameEngine.pickEmptyCell(); },
     spawnBonusRandom() { state.bonus = GameEngine.pickEmptyCell(); },
     clearBonus() { state.bonus = null; },
+    setTiles(list) { state.tiles = list || []; },
+    clearTiles() { state.tiles = []; },
     getOccupied() {
       const set = new Set();
       state.body.forEach(s => set.add(`${s.x},${s.y}`));
@@ -63,25 +66,22 @@ const GameEngine = (() => {
   }
 
   function makeCtx() {
-    // ctx = state (live) + helpers
     return Object.assign(state, helpers);
   }
 
   function reset(modeId = "classic") {
     const mode = ModeRegistry.get(modeId);
-    if (!mode) {
-      console.warn("Mode tidak ditemukan:", modeId);
-      return;
-    }
+    if (!mode) { console.warn("Mode tidak ditemukan:", modeId); return; }
 
     state.mode = mode;
     state.modeId = modeId;
 
-    // Reset dasar
     state.cols = CONFIG.GRID_COLS;
     state.rows = CONFIG.GRID_ROWS;
     state.body = [];
     state.obstacles = [];
+    state.tiles = [];
+    state.portals = [];
     state.snack = null;
     state.bonus = null;
     state.exit = null;
@@ -109,10 +109,8 @@ const GameEngine = (() => {
       state.body.push({ x: cx - i, y: cy });
     }
 
-    // Callback mode
     if (mode.onStart) mode.onStart(makeCtx());
 
-    // Snack awal
     if (mode.spawnSnack) mode.spawnSnack(makeCtx());
     else if (!state.snack) helpers.spawnSnackRandom();
 
@@ -125,17 +123,16 @@ const GameEngine = (() => {
     if (!mode) return;
     const ctx = makeCtx();
 
-    // Update waktu
     state.elapsedMs += dt;
 
-    // Hook onTick
+    // Hook: onTick (mode bisa spawn, ubah speed, dsb.)
     if (mode.onTick) mode.onTick(ctx, dt);
 
-    // Cek kondisi kalah/win oleh mode
+    // Cek win/lose setelah onTick
     if (mode.isLose && mode.isLose(ctx)) { gameOver(); return; }
     if (mode.isWin  && mode.isWin(ctx))  { gameVictory(); return; }
 
-    // Arah (cek larangan putar balik)
+    // Arah (larangan putar balik)
     const cur = CONFIG.DIRS[state.dir];
     const nxt = CONFIG.DIRS[state.nextDir];
     if (!(cur.x + nxt.x === 0 && cur.y + nxt.y === 0)) {
@@ -145,33 +142,41 @@ const GameEngine = (() => {
     const head = state.body[0];
     const newHead = { x: head.x + delta.x, y: head.y + delta.y };
 
-    // Tentukan makan SEBELUM cek tabrakan
+    // Tentukan makan SEBELUM tabrakan
     const willEatSnack = Collision.sameCell(newHead, state.snack);
     const willEatBonus = Collision.sameCell(newHead, state.bonus);
     const willEat = willEatSnack || willEatBonus;
     const willGrow = willEat && state.growOnEat;
 
-    // Cek tabrakan dinding
+    // Tabrakan dinding
     if (Collision.isWall(newHead, state.cols, state.rows)) {
       if (mode.onCollision && mode.onCollision(ctx, "wall")) return;
       gameOver(); return;
     }
-    // Cek tabrakan obstacle
+    // Tabrakan obstacle
     if (Collision.cellIn(newHead, state.obstacles)) {
       if (mode.onCollision && mode.onCollision(ctx, "obstacle")) return;
       gameOver(); return;
     }
-    // Cek tabrakan diri sendiri
+    // Tabrakan diri sendiri
     if (Collision.isSelf(state.body, newHead, willGrow)) {
       if (mode.onCollision && mode.onCollision(ctx, "self")) return;
       gameOver(); return;
     }
 
-    // Gerak
+    // Gerak: tambahkan head baru
     state.body.unshift(newHead);
 
-    // Makan
-    if (willEatSnack) {
+    // ===== Hook: onAfterMove (untuk portal teleportasi) =====
+    console.log("[engine] head masuk:", newHead.x, newHead.y, "portals:", state.portals.length, "onAfterMove?", !!mode.onAfterMove);
+    if (mode.onAfterMove) mode.onAfterMove(ctx, newHead);
+
+    // Setelah potensi teleportasi, ambil ulang head & cek makan
+    const headNow = state.body[0];
+    const ateSnack = Collision.sameCell(headNow, state.snack);
+    const ateBonus = Collision.sameCell(headNow, state.bonus);
+
+    if (ateSnack) {
       state.eaten++;
       if (mode.onEat) mode.onEat(ctx, "snack");
       else state.score += CONFIG.SCORE_NORMAL;
@@ -179,7 +184,7 @@ const GameEngine = (() => {
       if (mode.spawnSnack) mode.spawnSnack(ctx);
       else if (!state.snack) helpers.spawnSnackRandom();
       if (state.onScoreChange) state.onScoreChange(state.score);
-    } else if (willEatBonus) {
+    } else if (ateBonus) {
       if (mode.onEat) mode.onEat(ctx, "bonus");
       else state.score += CONFIG.SCORE_BONUS;
       state.bonus = null;
@@ -188,6 +193,8 @@ const GameEngine = (() => {
 
     // Pop ekor jika tidak tumbuh
     if (!willGrow) state.body.pop();
+
+    // Hook: onAfterMove hanya dipanggil SEKALI — sudah di atas.
 
     helpers.emitHud();
   }
@@ -238,13 +245,7 @@ const GameEngine = (() => {
   }
 
   return {
-    state,
-    reset,
-    pause,
-    resume,
-    start,
-    pickEmptyCell,
-    makeCtx,
-    helpers,
+    state, reset, pause, resume, start,
+    pickEmptyCell, makeCtx, helpers,
   };
 })();
