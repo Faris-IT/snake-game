@@ -30,6 +30,7 @@ const GameEngine = (() => {
     onVictory: null,
     onScoreChange: null,
     onHudChange: null,
+    onSnackEaten: null,   // callback tambahan untuk achievements & partikel
   };
 
   const helpers = {
@@ -101,6 +102,7 @@ const GameEngine = (() => {
 
     Input.clear();
     Input.setEnabled(true);
+    Particles.clear();
 
     const cx = Math.floor(state.cols / 2);
     const cy = Math.floor(state.rows / 2);
@@ -125,14 +127,11 @@ const GameEngine = (() => {
 
     state.elapsedMs += dt;
 
-    // Hook: onTick (mode bisa spawn, ubah speed, dsb.)
     if (mode.onTick) mode.onTick(ctx, dt);
 
-    // Cek win/lose setelah onTick
     if (mode.isLose && mode.isLose(ctx)) { gameOver(); return; }
     if (mode.isWin  && mode.isWin(ctx))  { gameVictory(); return; }
 
-    // Arah (larangan putar balik)
     const cur = CONFIG.DIRS[state.dir];
     const nxt = CONFIG.DIRS[state.nextDir];
     if (!(cur.x + nxt.x === 0 && cur.y + nxt.y === 0)) {
@@ -142,36 +141,28 @@ const GameEngine = (() => {
     const head = state.body[0];
     const newHead = { x: head.x + delta.x, y: head.y + delta.y };
 
-    // Tentukan makan SEBELUM tabrakan
     const willEatSnack = Collision.sameCell(newHead, state.snack);
     const willEatBonus = Collision.sameCell(newHead, state.bonus);
     const willEat = willEatSnack || willEatBonus;
     const willGrow = willEat && state.growOnEat;
 
-    // Tabrakan dinding
     if (Collision.isWall(newHead, state.cols, state.rows)) {
       if (mode.onCollision && mode.onCollision(ctx, "wall")) return;
       gameOver(); return;
     }
-    // Tabrakan obstacle
     if (Collision.cellIn(newHead, state.obstacles)) {
       if (mode.onCollision && mode.onCollision(ctx, "obstacle")) return;
       gameOver(); return;
     }
-    // Tabrakan diri sendiri
     if (Collision.isSelf(state.body, newHead, willGrow)) {
       if (mode.onCollision && mode.onCollision(ctx, "self")) return;
       gameOver(); return;
     }
 
-    // Gerak: tambahkan head baru
     state.body.unshift(newHead);
 
-    // ===== Hook: onAfterMove (untuk portal teleportasi) =====
-    console.log("[engine] head masuk:", newHead.x, newHead.y, "portals:", state.portals.length, "onAfterMove?", !!mode.onAfterMove);
     if (mode.onAfterMove) mode.onAfterMove(ctx, newHead);
 
-    // Setelah potensi teleportasi, ambil ulang head & cek makan
     const headNow = state.body[0];
     const ateSnack = Collision.sameCell(headNow, state.snack);
     const ateBonus = Collision.sameCell(headNow, state.bonus);
@@ -180,6 +171,13 @@ const GameEngine = (() => {
       state.eaten++;
       if (mode.onEat) mode.onEat(ctx, "snack");
       else state.score += CONFIG.SCORE_NORMAL;
+      // Partikel + callback
+      Particles.emit(
+        headNow.x * Renderer.getCell() + Renderer.getCell() / 2,
+        headNow.y * Renderer.getCell() + Renderer.getCell() / 2,
+        CONFIG.COLORS.snack, 10
+      );
+      if (state.onSnackEaten) state.onSnackEaten(state);
       state.snack = null;
       if (mode.spawnSnack) mode.spawnSnack(ctx);
       else if (!state.snack) helpers.spawnSnackRandom();
@@ -187,14 +185,16 @@ const GameEngine = (() => {
     } else if (ateBonus) {
       if (mode.onEat) mode.onEat(ctx, "bonus");
       else state.score += CONFIG.SCORE_BONUS;
+      Particles.emit(
+        headNow.x * Renderer.getCell() + Renderer.getCell() / 2,
+        headNow.y * Renderer.getCell() + Renderer.getCell() / 2,
+        CONFIG.COLORS.bonus, 16
+      );
       state.bonus = null;
       if (state.onScoreChange) state.onScoreChange(state.score);
     }
 
-    // Pop ekor jika tidak tumbuh
     if (!willGrow) state.body.pop();
-
-    // Hook: onAfterMove hanya dipanggil SEKALI — sudah di atas.
 
     helpers.emitHud();
   }
@@ -224,10 +224,15 @@ const GameEngine = (() => {
 
   function loop(ts) {
     requestAnimationFrame(loop);
-    if (state.status !== "playing") { state.lastTs = ts; return; }
+    if (state.status !== "playing") {
+      state.lastTs = ts;
+      Renderer.render(state);
+      return;
+    }
     const dt = ts - (state.lastTs || ts);
     state.lastTs = ts;
     state.accMs += dt;
+    Particles.update(dt);
 
     while (state.accMs >= state.stepMs) {
       state.accMs -= state.stepMs;

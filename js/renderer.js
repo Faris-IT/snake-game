@@ -65,7 +65,6 @@ const Renderer = (() => {
 
   function drawPortals(portals) {
     if (!portals || !portals.length) return;
-    // 4 warna untuk 4 pasangan
     const pairColors = ["#b478ff", "#ff8c42", "#2ee6ff", "#ff5fa2"];
     portals.forEach((p, i) => {
       const c = pairColors[i % pairColors.length];
@@ -74,19 +73,13 @@ const Renderer = (() => {
         const cx = pos.x * cell + cell / 2;
         const cy = pos.y * cell + cell / 2;
         const r  = cell * 0.42;
-
-        // Lingkaran luar
         ctx.strokeStyle = c;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.stroke();
-
-        // Isi transparan
         ctx.fillStyle = c + "40";
         ctx.fill();
-
-        // Lingkaran dalam (denyut)
         ctx.beginPath();
         ctx.arc(cx, cy, r * 0.45, 0, Math.PI * 2);
         ctx.fillStyle = c + "90";
@@ -142,7 +135,6 @@ const Renderer = (() => {
     ctx.shadowBlur = 16;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
-    // Tanda tanya
     ctx.fillStyle = "#1a1a1a";
     ctx.font = `${Math.floor(cell * 0.55)}px system-ui`;
     ctx.textAlign = "center";
@@ -154,7 +146,6 @@ const Renderer = (() => {
     if (!state._blindOverlay) return;
     ctx.fillStyle = "rgba(0, 0, 0, 0.80)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // "Lubang cahaya" di sekitar kepala
     const head = state.body[0];
     if (head) {
       const cx = head.x * cell + cell / 2;
@@ -181,6 +172,8 @@ const Renderer = (() => {
     drawSnack(state.snack);
     drawBonus(state.bonus);
     drawSnake(state.body);
+    // Partikel di atas ular
+    if (typeof Particles !== "undefined") Particles.draw(ctx, cell);
     drawBlindOverlay(state);
   }
 

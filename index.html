@@ -17,8 +17,9 @@
         <p class="tagline">Arcade · Snake · Strategy · Survival</p>
         <div class="menu-modes" id="mode-list"></div>
         <div class="menu-footer">
-          <button class="btn ghost" id="btn-stats">Statistik</button>
-          <button class="btn ghost" id="btn-settings">Pengaturan</button>
+          <button class="btn ghost" id="btn-stats">📊 Statistik</button>
+          <button class="btn ghost" id="btn-achievements">🏆 Achievements</button>
+          <button class="btn ghost" id="btn-settings">⚙ Pengaturan</button>
         </div>
       </div>
     </section>
@@ -66,8 +67,23 @@
     </section>
   </div>
 
-  <!-- ===== URUTAN SCRIPT PENTING! ===== -->
+  <!-- ===== MODAL ===== -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-title">Modal</h2>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ===== URUTAN SCRIPT ===== -->
   <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/themes.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/achievements.js"></script>
   <script src="js/modes/index.js"></script>
   <script src="js/modes/classic.js"></script>
   <script src="js/modes/time-rush.js"></script>
