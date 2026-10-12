@@ -1,8 +1,168 @@
+/* ============================================
+   RESPONSIVE — Mufa Snack
+   ============================================ */
+
+/* ===== Tablet & mobile umum ===== */
 @media (max-width: 720px) {
+  .hud {
+    padding: 6px 10px;
+    gap: 8px;
+  }
   .hud-value { font-size: .95rem; }
-  .menu-modes { grid-template-columns: 1fr 1fr; }
+  .hud-label { font-size: .55rem; }
+  .hud-center { font-size: .8rem; }
+  .hud-left, .hud-right { gap: 8px; }
+  .btn.icon { padding: 6px 10px; font-size: .9rem; }
+
+  .menu-wrap { padding: 16px; gap: 14px; }
+  .logo { font-size: clamp(1.8rem, 8vw, 2.6rem); letter-spacing: 3px; }
+  .tagline { font-size: .75rem; letter-spacing: 1px; }
+
+  .menu-modes {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .mode-card { padding: 10px; }
+  .mode-card .mc-title { font-size: .85rem; }
+  .mode-card .mc-desc { font-size: .68rem; }
+
+  .menu-footer { gap: 6px; }
+  .menu-footer .btn { padding: 8px 12px; font-size: .8rem; }
+
+  .overlay-card { padding: 18px 20px; min-width: 240px; }
+  .overlay-card h2 { font-size: 1.1rem; }
+  .overlay-card p { font-size: .8rem; }
+  .overlay-actions .btn { padding: 8px 14px; font-size: .85rem; }
+
+  /* Modal */
+  .modal-card { padding: 16px; width: 94vw; max-height: 88vh; }
+  .modal-header h2 { font-size: 1.1rem; }
+  .stat-num { font-size: 1.1rem; }
+  .stat-label { font-size: .62rem; }
+  .achv-icon { font-size: 1.5rem; }
+  .achv-info strong { font-size: .82rem; }
+  .achv-info span { font-size: .7rem; }
+  .setting-row { padding: 10px 0; font-size: .85rem; }
+
+  /* Toast */
+  .toast-achv {
+    top: 10px; right: 10px; left: 10px;
+    max-width: none;
+    padding: 10px 14px;
+  }
+  .toast-icon { font-size: 1.6rem; }
+  .toast-achv strong { font-size: .85rem; }
+  .toast-achv small { font-size: .7rem; }
 }
 
+/* ===== Mobile kecil (≤480px) ===== */
+@media (max-width: 480px) {
+  .hud {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+  .hud-value { font-size: .85rem; }
+  .hud-label { font-size: .5rem; }
+  .hud-center {
+    font-size: .72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hud-item { min-width: 0; }
+  .hud-left, .hud-right { gap: 6px; }
+  .btn.icon { padding: 5px 8px; font-size: .8rem; }
+
+  .menu-modes { grid-template-columns: 1fr; }
+  .mode-card { padding: 10px 12px; }
+  .logo { letter-spacing: 2px; }
+
+  .menu-footer { flex-direction: column; width: 100%; }
+  .menu-footer .btn { width: 100%; padding: 10px; font-size: .85rem; }
+
+  .arena-wrap { padding: 4px; }
+  #canvas { border-radius: 8px; }
+
+  .stat-grid { grid-template-columns: 1fr; }
+  .achv-item { padding: 8px 10px; gap: 8px; }
+  .theme-list { width: 100%; }
+  .theme-btn { flex: 1; }
+}
+
+/* ===== Tombol D-pad aktif hanya di perangkat sentuh ===== */
 @media (pointer: coarse) {
-  .mobile-controls { display: block; }
+  .mobile-controls {
+    display: block;
+    height: 180px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .dpad {
+    width: 62px;
+    height: 62px;
+    font-size: 1.4rem;
+    border-radius: 14px;
+    background: rgba(15, 27, 51, 0.9);
+    border: 1px solid var(--grid, #14213d);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    touch-action: manipulation;
+  }
+  .dpad:active {
+    background: var(--snake, #3ef58b);
+    color: #05240f;
+    transform: scale(0.95);
+  }
+  .dpad.up    { top: 10px;    left: 50%; transform: translateX(-50%); }
+  .dpad.down  { bottom: 10px; left: 50%; transform: translateX(-50%); }
+  .dpad.left  { left: 20px;   top: 50%;  transform: translateY(-50%); }
+  .dpad.right { right: 20px;  top: 50%;  transform: translateY(-50%); }
+  .dpad.up:active    { transform: translateX(-50%) scale(0.95); }
+  .dpad.down:active  { transform: translateX(-50%) scale(0.95); }
+  .dpad.left:active  { transform: translateY(-50%) scale(0.95); }
+  .dpad.right:active { transform: translateY(-50%) scale(0.95); }
+
+  /* Sembunyikan tombol pause keyboard hint, perkecil HUD */
+  .hud-center {
+    font-size: .8rem;
+  }
+}
+
+/* ===== Mobile kecil + pointer coarse: D-pad lebih besar ===== */
+@media (pointer: coarse) and (max-width: 480px) {
+  .mobile-controls { height: 160px; }
+  .dpad {
+    width: 56px;
+    height: 56px;
+    font-size: 1.2rem;
+  }
+  .dpad.up    { top: 8px; }
+  .dpad.down  { bottom: 8px; }
+  .dpad.left  { left: 14px; }
+  .dpad.right { right: 14px; }
+}
+
+/* ===== Landscape mobile: HUD ringkas, D-pad di sisi ===== */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  .hud {
+    padding: 4px 8px;
+  }
+  .hud-value { font-size: .8rem; }
+  .hud-label { font-size: .5rem; }
+
+  .mobile-controls {
+    position: fixed;
+    inset: auto 0 0 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .dpad {
+    position: fixed;
+    width: 54px;
+    height: 54px;
+    pointer-events: auto;
+  }
+  .dpad.up    { top: auto; bottom: 80px; left: 80px;  transform: none; }
+  .dpad.down  { top: auto; bottom: 16px; left: 80px;  transform: none; }
+  .dpad.left  { top: auto; bottom: 48px; left: 16px;  transform: none; }
+  .dpad.right { top: auto; bottom: 48px; left: 144px; transform: none; }
+  .dpad:active { transform: scale(0.95); }
 }
