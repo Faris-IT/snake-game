@@ -325,3 +325,13 @@ canvas { display: block; touch-action: none; }
 .toast-icon { font-size: 2rem; }
 .toast-achv strong { display: block; font-size: .9rem; color: var(--snake); }
 .toast-achv small { font-size: .75rem; color: var(--muted); }
+
+/* Portrait: kontrol di bawah arena */
+@media (orientation: portrait) {
+  .arena-wrap { display: flex; }
+  .mobile-controls {
+    display: none;      /* default, akan diaktifkan di responsive.css */
+    position: relative;
+    width: 100%;
+  }
+}

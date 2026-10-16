@@ -2,7 +2,7 @@
    MUFA SNACK — RESPONSIVE
    1. Tablet
    2. Mobile Portrait (default)
-   3. Mobile Landscape (kontrol mengambang kiri-kanan)
+   3. Mobile Landscape (panel kontrol samping)
    4. Layar sangat kecil
    5. Touch / Pointer
    ========================================================================== */
@@ -86,13 +86,21 @@
   }
   .btn.icon { padding: 6px 10px; font-size: 0.9rem; }
 
-  /* ----- ARENA ----- */
-  .arena-wrap { padding: 4px 4px 0 4px; min-height: 0; }
+  /* ----- ARENA (portrait) ----- */
+  .arena-wrap {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 4px 0 4px;
+    min-height: 0;
+    flex: 1;
+  }
+  #canvas { flex: 0 0 auto; }
 
   /* ----- D-PAD (bawah, portrait) ----- */
   .mobile-controls {
     display: block;
     position: relative;
+    width: 100%;
     height: 148px;
     margin-top: -6px;
     padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 4px);
@@ -101,6 +109,7 @@
   }
   .dpad {
     pointer-events: auto;
+    position: absolute;
     width: 62px;
     height: 62px;
     font-size: 1.3rem;
@@ -172,11 +181,11 @@
 }
 
 /* ==========================================================================
-   3. MOBILE LANDSCAPE — Kontrol mengambang kiri-kanan
+   3. MOBILE LANDSCAPE — Panel kontrol samping (arena tidak tertutup)
    ========================================================================== */
 @media (max-height: 500px) and (orientation: landscape) {
 
-  /* Menu landscape: rapikan agar logo + footer tidak terpotong */
+  /* --- Menu landscape --- */
   .menu-wrap {
     width: 100vw;
     height: 100dvh;
@@ -188,85 +197,111 @@
   }
   .logo { font-size: 1.6rem; letter-spacing: 2px; margin: 0; }
   .tagline { font-size: 0.62rem; }
-  .menu-modes {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-  }
+  .menu-modes { grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .mode-card { padding: 8px 10px; border-radius: 8px; }
   .mode-card .mc-title { font-size: 0.78rem; }
   .mode-card .mc-desc  { font-size: 0.62rem; }
   .menu-footer { gap: 6px; }
   .menu-footer .btn { padding: 6px 10px; font-size: 0.75rem; flex: 0 0 auto; }
 
-  /* HUD di landscape: super ringkas */
-  .hud { padding: 4px 10px; gap: 8px; }
+  /* --- HUD ringkas --- */
+  .hud {
+    padding: 4px 10px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
   .hud-label { font-size: 0.5rem; }
   .hud-value { font-size: 0.78rem; }
   .hud-center { font-size: 0.68rem; max-width: 40vw; }
   .btn.icon { padding: 4px 8px; font-size: 0.8rem; }
 
-  /* Arena full width */
+  /* --- Arena-wrap: grid 3 kolom (kontrol kiri | arena | kontrol kanan) --- */
   .arena-wrap {
-    padding: 2px 80px;   /* sisakan ruang kiri-kanan untuk D-pad mengambang */
+    display: grid;
+    grid-template-columns: 68px 1fr 68px;
+    grid-template-rows: 1fr;
+    align-items: center;
+    justify-items: center;
+    gap: 0;
+    padding: 4px 6px;
     min-height: 0;
+    flex: 1;
   }
 
-  /* ----- D-PAD: mengambang di kiri & kanan layar ----- */
-  .mobile-controls {
-    display: block;
-    position: absolute;
-    inset: 0;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    pointer-events: none;   /* hanya tombol yang klikabel */
-    background: transparent;
+  /* Canvas di kolom tengah */
+  #canvas {
+    grid-column: 2;
+    grid-row: 1;
+    max-width: 100%;
+    max-height: 100%;
   }
+
+  /* Overlay mengikuti kolom tengah */
+  .overlay {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: stretch;
+    justify-self: stretch;
+    border-radius: 12px;
+  }
+
+  /* --- Mobile controls: bukan absolute, jadi bagian dari grid --- */
+  .mobile-controls {
+    display: contents;   /* anak-anaknya masuk ke grid arena-wrap */
+  }
+
   .dpad {
     pointer-events: auto;
-    position: absolute;
-    width: 52px;
-    height: 52px;
-    font-size: 1.15rem;
-    border-radius: 50%;               /* bulat agar terlihat seperti joystick */
-    background: rgba(15, 27, 51, 0.9);
+    position: static;
+    width: 56px;
+    height: 56px;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    background: rgba(15, 27, 51, 0.95);
     border: 1.5px solid var(--grid);
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  }
-  /* Sisi kiri: tombol kiri & bawah */
-  .dpad.left {
-    left: calc(env(safe-area-inset-left, 0px) + 14px);
-    top: calc(50% - 60px);
+    transition: transform .08s ease, background .08s ease;
     transform: none;
   }
-  .dpad.down {
-    left: calc(env(safe-area-inset-left, 0px) + 14px);
-    top: calc(50% + 10px);
-    bottom: auto;
-    transform: none;
-  }
-  /* Sisi kanan: tombol atas & kanan */
-  .dpad.up {
-    right: calc(env(safe-area-inset-right, 0px) + 14px);
-    top: calc(50% - 60px);
-    left: auto;
-    transform: none;
-  }
-  .dpad.right {
-    right: calc(env(safe-area-inset-right, 0px) + 14px);
-    top: calc(50% + 10px);
-    left: auto;
-    transform: none;
-  }
-
-  /* Active state tanpa translateX/Y agar tidak goyang */
   .dpad:active { background: var(--snake); color: #05240f; transform: scale(0.92); }
 
-  /* Overlay & modal landscape */
-  .overlay-card { padding: 14px 18px; min-width: 220px; }
-  .overlay-card h2 { font-size: 1rem; }
-  .overlay-card p { font-size: 0.72rem; margin-bottom: 10px; }
-  .overlay-actions .btn { padding: 6px 14px; font-size: 0.78rem; }
+  /* Sisi kiri: [←] di atas, [↓] di bawah — kolom 1 */
+  .dpad.left {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    justify-self: center;
+    margin-top: 6px;
+  }
+  .dpad.down {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: end;
+    justify-self: center;
+    margin-bottom: 6px;
+  }
+
+  /* Sisi kanan: [↑] di atas, [→] di bawah — kolom 3 */
+  .dpad.up {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+    justify-self: center;
+    margin-top: 6px;
+  }
+  .dpad.right {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: end;
+    justify-self: center;
+    margin-bottom: 6px;
+  }
+
+  /* --- Overlay & modal landscape --- */
+  .overlay-card { padding: 12px 18px; min-width: 200px; }
+  .overlay-card h2 { font-size: 0.95rem; }
+  .overlay-card p { font-size: 0.7rem; margin-bottom: 8px; }
+  .overlay-actions .btn { padding: 6px 14px; font-size: 0.75rem; }
 
   .modal-card { max-height: 92vh; padding: 14px 16px; }
   .modal-header h2 { font-size: 0.95rem; }
@@ -276,20 +311,17 @@
   .achv-item { padding: 6px 10px; }
   .achv-icon { font-size: 1.3rem; }
 
-  /* Toast landscape: kecil di kanan atas */
+  /* --- Toast landscape --- */
   .toast-achv {
-    top: 8px;
-    right: 8px;
-    left: auto;
-    max-width: 260px;
-    padding: 8px 12px;
+    top: 8px; right: 8px; left: auto;
+    max-width: 260px; padding: 8px 12px;
     transform: translateX(120%);
   }
   .toast-achv.show { transform: translateX(0); }
 }
 
 /* ==========================================================================
-   4. LAYAR SANGAT KECIL (mis. iPhone SE portrait)
+   4. LAYAR SANGAT KECIL (iPhone SE portrait)
    ========================================================================== */
 @media (max-width: 380px) and (orientation: portrait) {
   .logo { font-size: 1.7rem; }
@@ -305,7 +337,8 @@
    5. TOUCH / POINTER
    ========================================================================== */
 @media (pointer: coarse) {
-  .mobile-controls { display: block; }
+  .mobile-controls { display: contents; }
+  .dpad { display: flex; }
 }
 @media (pointer: fine) {
   .mobile-controls { display: none; }

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Mufa Snack — Mufa Games</title>
   <link rel="stylesheet" href="css/reset.css" />
   <link rel="stylesheet" href="css/style.css" />
@@ -47,8 +47,10 @@
         </div>
       </header>
 
+      <!-- Arena wrap: canvas + overlay + D-pad -->
       <div class="arena-wrap">
         <canvas id="canvas"></canvas>
+
         <div class="overlay" id="overlay" hidden>
           <div class="overlay-card">
             <h2 id="overlay-title">Jeda</h2>
@@ -56,13 +58,13 @@
             <div class="overlay-actions" id="overlay-actions"></div>
           </div>
         </div>
-      </div>
 
-      <div class="mobile-controls" id="mobile-controls">
-        <button class="dpad up"    data-dir="up">▲</button>
-        <button class="dpad left"  data-dir="left">◀</button>
-        <button class="dpad right" data-dir="right">▶</button>
-        <button class="dpad down"  data-dir="down">▼</button>
+        <div class="mobile-controls" id="mobile-controls">
+          <button class="dpad up"    data-dir="up">▲</button>
+          <button class="dpad left"  data-dir="left">◀</button>
+          <button class="dpad right" data-dir="right">▶</button>
+          <button class="dpad down"  data-dir="down">▼</button>
+        </div>
       </div>
     </section>
   </div>
