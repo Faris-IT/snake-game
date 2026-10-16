@@ -12,7 +12,7 @@
     width: 100vw;
     padding: 16px 12px 24px;
     gap: 12px;
-    height: 100vh;
+    height: 100dvh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -23,18 +23,11 @@
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  .mode-card {
-    padding: 10px;
-    border-radius: 10px;
-  }
+  .mode-card { padding: 10px; border-radius: 10px; }
   .mode-card .mc-title { font-size: 0.85rem; }
   .mode-card .mc-desc  { font-size: 0.68rem; }
 
-  .menu-footer {
-    gap: 8px;
-    width: 100%;
-    justify-content: center;
-  }
+  .menu-footer { gap: 8px; width: 100%; justify-content: center; }
   .menu-footer .btn {
     padding: 8px 12px;
     font-size: 0.82rem;
@@ -43,11 +36,7 @@
   }
 
   /* HUD */
-  .hud {
-    padding: 8px 10px;
-    gap: 6px;
-    flex-wrap: nowrap;
-  }
+  .hud { padding: 8px 10px; gap: 6px; flex-wrap: nowrap; }
   .hud-left, .hud-right { gap: 8px; }
   .hud-item { min-width: 0; }
   .hud-label { font-size: 0.55rem; }
@@ -62,45 +51,45 @@
   }
   .btn.icon { padding: 6px 10px; font-size: 0.9rem; }
 
-  /* Arena */
-  .arena-wrap { padding: 4px; }
+  /* Arena — kurangi padding bawah supaya D-pad bisa naik */
+  .arena-wrap {
+    padding: 4px 4px 0 4px;
+    min-height: 0;
+  }
 
-  /* Mobile controls — lebih besar & posisi nyaman untuk jempol */
+  /* ===== Mobile controls — diangkat & dirapikan ===== */
   .mobile-controls {
     display: block;
     position: relative;
-    height: 220px;
-    padding: 0 8px env(safe-area-inset-bottom, 8px);
+    height: 140px;                                /* turun dari 220px → lebih dekat jempol */
+    margin-top: -8px;                             /* tarik sedikit ke atas */
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 4px);
     flex-shrink: 0;
+    pointer-events: none;                         /* hanya tombol yang klikabel */
   }
   .dpad {
-    width: 66px;
-    height: 66px;
-    font-size: 1.4rem;
+    pointer-events: auto;
+    width: 62px;
+    height: 62px;
+    font-size: 1.3rem;
     border-radius: 16px;
     background: rgba(15, 27, 51, 0.95);
     border: 1.5px solid var(--grid);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
     transition: transform .08s ease, background .08s ease;
   }
-  .dpad.up    { top: 12px;  left: 50%; transform: translateX(-50%); }
-  .dpad.down  { bottom: 12px; left: 50%; transform: translateX(-50%); }
-  .dpad.left  { left: 12px; top: 50%; transform: translateY(-50%); }
-  .dpad.right { right: 12px; top: 50%; transform: translateY(-50%); }
-  .dpad:active {
-    background: var(--snake);
-    color: #05240f;
-    transform: translateX(-50%) scale(0.95);
-  }
-  .dpad.left:active  { transform: translateY(-50%) scale(0.95); }
-  .dpad.right:active { transform: translateY(-50%) scale(0.95); }
+  /* Naikkan posisi D-pad agar tidak mentok bawah */
+  .dpad.up    { top: 4px;    left: 50%; transform: translateX(-50%); }
+  .dpad.down  { bottom: 4px; left: 50%; transform: translateX(-50%); }
+  .dpad.left  { left: 10px;  top: 50%;  transform: translateY(-50%); }
+  .dpad.right { right: 10px; top: 50%;  transform: translateY(-50%); }
+
+  .dpad:active { background: var(--snake); color: #05240f; }
+  .dpad.up:active, .dpad.down:active { transform: translateX(-50%) scale(0.95); }
+  .dpad.left:active, .dpad.right:active { transform: translateY(-50%) scale(0.95); }
 
   /* Overlay */
-  .overlay-card {
-    padding: 20px 22px;
-    min-width: 240px;
-    max-width: 90vw;
-  }
+  .overlay-card { padding: 20px 22px; min-width: 240px; max-width: 90vw; }
   .overlay-card h2 { font-size: 1.15rem; }
   .overlay-card p { font-size: 0.78rem; }
   .overlay-actions { gap: 8px; }
@@ -122,7 +111,6 @@
   .stat-item { padding: 10px; }
   .stat-num { font-size: 1.1rem; }
   .stat-label { font-size: 0.62rem; }
-
   .best-list li { padding: 7px 10px; font-size: 0.82rem; }
 
   /* Achievements */
@@ -154,15 +142,16 @@
   .toast-achv small { font-size: 0.7rem; }
 }
 
-/* ===== Layar sangat kecil (misal iPhone SE) ===== */
+/* ===== Layar sangat kecil ===== */
 @media (max-width: 380px) {
   .logo { font-size: 1.7rem; }
   .menu-modes { grid-template-columns: 1fr; }
   .menu-footer .btn { font-size: 0.78rem; padding: 7px 10px; }
   .hud-value { font-size: 0.78rem; }
   .hud-center { font-size: 0.68rem; max-width: 40vw; }
-  .dpad { width: 60px; height: 60px; font-size: 1.2rem; }
-  .mobile-controls { height: 200px; }
+
+  .mobile-controls { height: 130px; }
+  .dpad { width: 58px; height: 58px; font-size: 1.15rem; }
 }
 
 /* ===== Landscape mobile ===== */
@@ -172,15 +161,16 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 100px;
+    height: 110px;
+    margin-top: 0;
     background: linear-gradient(to top, rgba(5,7,13,0.9), transparent);
-    pointer-events: none;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 6px);
   }
-  .dpad { pointer-events: auto; width: 54px; height: 54px; font-size: 1.1rem; }
-  .dpad.up    { top: 4px;  left: 50%; }
-  .dpad.down  { bottom: 4px; left: 50%; }
-  .dpad.left  { left: 8px; top: 50%; }
-  .dpad.right { right: 8px; top: 50%; }
+  .dpad { width: 56px; height: 56px; font-size: 1.15rem; }
+  .dpad.up    { top: 6px;    left: 50%; }
+  .dpad.down  { bottom: 6px; left: 50%; }
+  .dpad.left  { left: 10px;  top: 50%; }
+  .dpad.right { right: 10px; top: 50%; }
 
   .hud { padding: 4px 8px; }
   .arena-wrap { padding: 2px; }
@@ -188,12 +178,11 @@
   .menu-modes { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* ===== Touch-specific: hanya aktifkan D-pad pada perangkat sentuh ===== */
+/* ===== Touch-specific ===== */
 @media (pointer: coarse) {
   .mobile-controls { display: block; }
 }
 
-/* ===== Sembunyikan D-pad pada desktop ===== */
 @media (pointer: fine) {
   .mobile-controls { display: none; }
 }
