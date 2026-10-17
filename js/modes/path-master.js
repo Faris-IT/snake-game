@@ -1,157 +1,66 @@
-// ===== Mode: Path Master =====
-ModeRegistry.register({
-  id: "path-master",
-  name: "Path Master",
-  desc: "Checkpoint berurutan.",
-  ready: true,
-  config: { stepMs: 150, growOnEat: true, lives: 3, targetCheckpoints: 5 },
+(function (M) {
+  var R = M.random, G = M.grid;
+  var NEED = 5, LIVES = 3, MAX_LEVEL = 10, CP_POINTS = 20, CLEAR_BONUS = 50;
 
-  onStart(ctx) {
-    ctx.level = 1;
-    ctx.checkpoints = [];
-    ctx.checkpointIndex = 0;
-    ctx.totalCheckpoints = 5;
-    buildPathMasterLevel(ctx);
-  },
-
-  onTick(ctx) {
-    const h = ctx.body[0];
-
-    // Cek checkpoint berikutnya
-    const cp = ctx.checkpoints[ctx.checkpointIndex];
-    if (cp && !ctx.exitUnlocked && h.x === cp.x && h.y === cp.y) {
-      ctx.checkpointIndex++;
-      ctx.score += 50;
-      if (ctx.onScoreChange) ctx.onScoreChange(ctx.score);
-
-      if (ctx.checkpointIndex >= ctx.checkpoints.length) {
-        // Semua checkpoint terkumpul → exit terbuka di posisi checkpoint terakhir
-        ctx.exit = cp;
-        ctx.exitUnlocked = true;
-      } else {
-        // Tampilkan checkpoint berikutnya di slot exit
-        ctx.exit = ctx.checkpoints[ctx.checkpointIndex];
-        ctx.exitUnlocked = false;
-        // Beri snack baru agar progres tetap jalan
-        const s = GameEngine.pickEmptyCell();
-        if (s) ctx.spawnSnackAt(s);
-      }
-    }
-
-    // Cek exit terbuka → naik level
-    if (ctx.exitUnlocked && ctx.exit && h.x === ctx.exit.x && h.y === ctx.exit.y) {
-      ctx.level++;
-      ctx.score += 100;
-      if (ctx.onScoreChange) ctx.onScoreChange(ctx.score);
-      buildPathMasterLevel(ctx);
-    }
-  },
-
-  onEat(ctx, kind) {
-    if (kind === "snack") ctx.score += CONFIG.SCORE_NORMAL;
-  },
-
-  spawnSnack(ctx) {
-    const s = GameEngine.pickEmptyCell();
-    if (s) ctx.spawnSnackAt(s);
-  },
-
-  onCollision(ctx, type) {
-    ctx.lives--;
-    if (ctx.lives <= 0) {
-      GameEngine.helpers.endGame();
-    } else {
-      resetSnakePathMaster(ctx);
-    }
-    return true;
-  },
-
-  isLose(ctx) { return ctx.lives <= 0; },
-
-  getObjective(ctx) {
-    const total = ctx.checkpoints.length;
-    const done = ctx.checkpointIndex;
-    const goal = ctx.exitUnlocked
-      ? "🚪 Menuju exit!"
-      : "CP " + (done + 1) + "/" + total;
-    return "Lv " + ctx.level + " · " + goal + " · ❤ " + ctx.lives;
-  },
-});
-
-// ===== Helper Path Master =====
-function buildPathMasterLevel(ctx) {
-  ctx.obstacles = [];
-  ctx.exit = null;
-  ctx.exitUnlocked = false;
-
-  const cx = Math.floor(ctx.cols / 2);
-  const cy = Math.floor(ctx.rows / 2);
-  const keepClear = (x, y) => Math.abs(x - cx) < 3 && Math.abs(y - cy) < 2;
-
-  // Rintangan naik sesuai level
-  const wallCount = 3 + ctx.level * 2;
-  let placed = 0;
-  let guard = 0;
-  while (placed < wallCount && guard < 200) {
-    guard++;
-    const w = 1 + Math.floor(Math.random() * 2);
-    const h = 1 + Math.floor(Math.random() * 2);
-    const x0 = 2 + Math.floor(Math.random() * (ctx.cols - w - 4));
-    const y0 = 2 + Math.floor(Math.random() * (ctx.rows - h - 4));
-    let overlap = false;
-    for (let y = y0; y < y0 + h; y++) {
-      for (let x = x0; x < x0 + w; x++) {
-        if (keepClear(x, y)) { overlap = true; break; }
-        if (ctx.obstacles.some(o => o.x === x && o.y === y)) { overlap = true; break; }
-      }
-      if (overlap) break;
-    }
-    if (overlap) continue;
-    for (let y = y0; y < y0 + h; y++) {
-      for (let x = x0; x < x0 + w; x++) {
-        ctx.obstacles.push({ x, y });
-      }
-    }
-    placed++;
+  function setupLevel(s) {
+    var keep = M.engine.clearZone(s), area = s.cols * s.rows, lvl = s.level;
+    var want = Math.max(2, Math.min(40, Math.round((3 + lvl * 2) * (area / 400) * s.diff.obstacles)));
+    s.obstacles = G.walls(s.cols, s.rows, keep, want, 3 + Math.min(lvl, 6));
+    var f = G.farCell(s.cols, s.rows, s.obstacles, keep);
+    s.door = { x: f.x, y: f.y, open: false };
+    s.items = [];
+    s.cpIndex = 0;
+    s.noFood = true; // mode ini tidak memakai snack biasa
+    s.readyTitle = 'Level ' + lvl;
+    s.readyText = 'Kunjungi checkpoint 1 sampai ' + NEED + ' berurutan, lalu masuk ke pintu keluar.';
   }
 
-  // Buat 5 checkpoint acak (hindari rintangan)
-  ctx.checkpoints = [];
-  ctx.checkpointIndex = 0;
-  let cpGuard = 0;
-  while (ctx.checkpoints.length < ctx.totalCheckpoints && cpGuard < 400) {
-    cpGuard++;
-    const c = GameEngine.pickEmptyCell();
-    if (!c) break;
-    if (ctx.obstacles.some(o => o.x === c.x && o.y === c.y)) continue;
-    // Jaga jarak antar checkpoint minimal 4 sel
-    const tooClose = ctx.checkpoints.some(p => Math.abs(p.x - c.x) + Math.abs(p.y - c.y) < 4);
-    if (tooClose) continue;
-    ctx.checkpoints.push(c);
+  // Checkpoint berikutnya muncul hanya di sel yang bisa dijangkau dari kepala ular saat ini.
+  function nextCheckpoint(s) {
+    var head = s.snake[0], blocked = M.engine.occupied(), keep = M.engine.clearZone(s);
+    var d = G.bfs(s.cols, s.rows, blocked, head.x, head.y).dist, near = [], any = [];
+    for (var i = 0; i < d.length; i++) {
+      var x = i % s.cols, y = (i / s.cols) | 0, k = x + ',' + y;
+      if (d[i] < 1 || blocked.has(k) || keep.has(k)) continue;
+      (d[i] >= 4 ? near : any).push({ x: x, y: y });
+    }
+    var pool = near.length ? near : any;
+    if (!pool.length) return;
+    var c = pool[R.int(0, pool.length - 1)];
+    s.items.push({ type: 'checkpoint', x: c.x, y: c.y, points: CP_POINTS, grow: true, color: '#22d3ee', label: String(s.cpIndex + 1) });
   }
 
-  // Snack awal
-  const s = GameEngine.pickEmptyCell();
-  if (s) ctx.spawnSnackAt(s);
-
-  // Tampilkan checkpoint pertama di slot exit (kotak abu-abu)
-  if (ctx.checkpoints[0]) {
-    ctx.exit = ctx.checkpoints[0];
-    ctx.exitUnlocked = false;
-  }
-}
-
-function resetSnakePathMaster(ctx) {
-  const cx = Math.floor(ctx.cols / 2);
-  const cy = Math.floor(ctx.rows / 2);
-  ctx.body = [];
-  for (let i = 0; i < CONFIG.START_LENGTH; i++) {
-    ctx.body.push({ x: cx - i, y: cy });
-  }
-  ctx.dir = "right";
-  ctx.nextDir = "right";
-  ctx.snack = null;
-  const sp = GameEngine.pickEmptyCell();
-  if (sp) ctx.snack = sp;
-  Input.clear();
-}
+  M.defineMode({
+    id: 'path',
+    setupLevel: setupLevel,
+    onStart: function (s) {
+      s.level = 1; s.lives = LIVES;
+      setupLevel(s);
+      nextCheckpoint(s);
+    },
+    onItem: function (s, item) {
+      s.cpIndex++;
+      if (s.cpIndex >= NEED) s.door.open = true; else nextCheckpoint(s);
+      return { points: CP_POINTS };
+    },
+    onMove: function (s, head) {
+      if (!s.door.open || head.x !== s.door.x || head.y !== s.door.y) return;
+      M.scoring.add(s, CLEAR_BONUS);
+      if (s.level >= MAX_LEVEL) { M.engine.end('victory', 'Semua Level Selesai!'); return; }
+      s.level++;
+      setupLevel(s);
+      M.engine.resetSnake();
+      nextCheckpoint(s);
+    },
+    onCollision: function (s, type) {
+      return M.engine.loseLife('Tabrakan!', 'Sisa {n} nyawa. Progres checkpoint tetap.') ? 'game-over' : 'handled';
+    },
+    getObjective: function (s) {
+      return [
+        { label: 'Level', value: s.level + '/' + MAX_LEVEL },
+        { label: s.door.open ? 'Pintu' : 'Checkpoint', value: s.door.open ? 'Terbuka!' : s.cpIndex + '/' + NEED },
+        { label: 'Nyawa', value: '♥'.repeat(Math.max(0, s.lives)) + '♡'.repeat(LIVES - Math.max(0, s.lives)) }
+      ];
+    }
+  });
+})(window.Mufa = window.Mufa || {});

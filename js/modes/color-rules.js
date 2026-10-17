@@ -1,85 +1,97 @@
-// ===== Mode: Color Rules =====
-ModeRegistry.register({
-  id: "color-rules",
-  name: "Color Rules",
-  desc: "Aturan warna berganti.",
-  ready: true,
-  config: { stepMs: 150, growOnEat: true, lives: 3, targetSnacks: 15 },
+(function (M) {
+  var R = M.random, G = M.grid, TARGET = 15, LIVES = 3, CHANGE_MS = 10000, WARN_MS = 2000, BONUS = 20;
+  var COLORS = {
+    blue:   { name: 'Biru',   hex: '#3b82f6' },
+    purple: { name: 'Ungu',   hex: '#a855f7' },
+    orange: { name: 'Oranye', hex: '#f59e0b' }
+  };
+  var KEYS = Object.keys(COLORS);
 
-  onStart(ctx) {
-    ctx.targetSnacks = 15;
-    ctx._crTimer = 0;
-    ctx._crInterval = 10000;  // 10 detik
-    ctx._crSafe = "green";
-    ctx._crForbidden = "red";
-    ctx._crMap = [];
-    generateColorMap(ctx);
-    refreshColorTiles(ctx);
-  },
+  function other(exclude) {
+    var a = KEYS.filter(function (k) { return k !== exclude; });
+    return a[R.int(0, a.length - 1)];
+  }
 
-  onTick(ctx, dt) {
-    ctx._crTimer += dt;
-    if (ctx._crTimer >= ctx._crInterval) {
-      ctx._crTimer = 0;
-      // Tukar safe ↔ forbidden
-      const tmp = ctx._crSafe;
-      ctx._crSafe = ctx._crForbidden;
-      ctx._crForbidden = tmp;
-      refreshColorTiles(ctx);
-    }
-  },
-
-  onAfterMove(ctx) {
-    const h = ctx.body[0];
-    const tile = ctx._crMap.find(t => t.x === h.x && t.y === h.y);
-    if (tile && tile.color === ctx._crForbidden) {
-      ctx.lives--;
-      if (ctx.lives <= 0) GameEngine.helpers.endGame();
-    }
-  },
-
-  onEat(ctx, kind) {
-    if (kind === "snack") ctx.score += CONFIG.SCORE_NORMAL;
-  },
-
-  isLose(ctx) { return ctx.lives <= 0; },
-  isWin(ctx)  { return ctx.eaten >= ctx.targetSnacks; },
-
-  getObjective(ctx) {
-    const safe = ctx._crSafe === "green" ? "🟢" : "🔵";
-    const forb = ctx._crForbidden === "red" ? "🔴" : "🟣";
-    return "🎯 " + ctx.eaten + "/15 · ❤ " + ctx.lives + " · Aman " + safe + " · Bahaya " + forb;
-  },
-});
-
-function generateColorMap(ctx) {
-  const colors = ["red", "blue"];
-  ctx._crMap = [];
-  const cx = Math.floor(ctx.cols / 2);
-  const cy = Math.floor(ctx.rows / 2);
-  for (let y = 0; y < ctx.rows; y++) {
-    for (let x = 0; x < ctx.cols; x++) {
-      // Hindari sel dekat start ular
-      if (Math.abs(x - cx) < 3 && Math.abs(y - cy) < 2) continue;
-      if (Math.random() < 0.30) {
-        ctx._crMap.push({ x, y, color: colors[Math.floor(Math.random() * colors.length)] });
+  // Petak warna acak. Untuk setiap warna yang mungkin terlarang, sisa arena harus tetap terhubung.
+  function buildTiles(s) {
+    var keep = M.engine.clearZone(s), cols = s.cols, rows = s.rows, area = cols * rows;
+    var cx = Math.floor(cols / 2), cy = Math.floor(rows / 2), cover = .28 * s.diff.obstacles, map;
+    for (var attempt = 0; attempt < 200; attempt++) {
+      map = new Map();
+      var goal = Math.floor(area * cover), guard = 0;
+      while (map.size < goal && guard++ < 200) {
+        var w = R.int(2, 4), h = R.int(2, 4), x0 = R.int(0, cols - w), y0 = R.int(0, rows - h), c = KEYS[R.int(0, 2)];
+        for (var y = y0; y < y0 + h; y++) for (var x = x0; x < x0 + w; x++)
+          if (!keep.has(x + ',' + y)) map.set(x + ',' + y, c);
       }
+      var valid = KEYS.every(function (col) {
+        var blocked = new Set();
+        map.forEach(function (v, k) { if (v === col) blocked.add(k); });
+        return G.bfs(cols, rows, blocked, cx, cy).count === area - blocked.size;
+      });
+      if (valid) break;
+      cover *= .98;
     }
+    s.tileMap = map;
+    s.tiles = [];
+    map.forEach(function (c, k) { var p = k.split(','); s.tiles.push({ x: +p[0], y: +p[1], c: c }); });
   }
-}
 
-function refreshColorTiles(ctx) {
-  const tiles = [];
-  for (const t of ctx._crMap) {
-    if (t.color === ctx._crForbidden) {
-      // Warna terlarang: merah jika forbidden=red, ungu jika forbidden=blue
-      const kind = ctx._crForbidden === "red" ? "danger" : "purple";
-      tiles.push({ x: t.x, y: t.y, kind });
-    } else {
-      // Warna aman: hijau jika safe=green, biru jika safe=blue
-      const kind = ctx._crSafe === "green" ? "green" : "blue";
-      tiles.push({ x: t.x, y: t.y, kind });
-    }
+  function hurt(s) {
+    return M.engine.loseLife('Sel terlarang!', 'Sisa {n} nyawa. Skor dan progres tetap aman.');
   }
-  ctx.setTiles(tiles);
-}
+
+  function onForbidden(s, p) { return s.tileMap.get(p.x + ',' + p.y) === s.forbidden; }
+
+  M.defineMode({
+    id: 'color',
+    onStart: function (s) {
+      s.lives = LIVES; s.ruleMs = 0;
+      s.tileColors = {};
+      KEYS.forEach(function (k) { s.tileColors[k] = COLORS[k].hex; });
+      buildTiles(s);
+      s.forbidden = KEYS[R.int(0, 2)];
+      s.targetColor = other(s.forbidden);
+      s.nextForbidden = null;
+      s.readyText = 'Hindari sel warna terlarang (bertanda X). Snack warna bonus memberi +' + BONUS + ' poin.';
+    },
+    onTick: function (s, dt) {
+      s.ruleMs += dt;
+      if (!s.nextForbidden && s.ruleMs >= CHANGE_MS - WARN_MS) s.nextForbidden = other(s.forbidden);
+      if (s.ruleMs < CHANGE_MS) return;
+      s.ruleMs = 0;
+      s.forbidden = s.nextForbidden; s.nextForbidden = null;
+      s.targetColor = other(s.forbidden);
+      if (s.food && onForbidden(s, s.food)) M.engine.respawnFood();
+      if (onForbidden(s, s.snake[0]) && hurt(s)) M.engine.end('game-over');
+    },
+    onMove: function (s, head) {
+      if (onForbidden(s, head) && hurt(s)) M.engine.end('game-over');
+    },
+    onCollision: function (s, type) { return hurt(s) ? 'game-over' : 'handled'; },
+    onFoodSpawn: function (s, food) {
+      // Setengah dari snack berwarna sesuai target bonus saat ini.
+      var key = Math.random() < .5 ? s.targetColor : KEYS[R.int(0, 2)];
+      food.colorKey = key; food.color = COLORS[key].hex;
+    },
+    onEat: function (s) {
+      var bonus = s.food && s.food.colorKey === s.targetColor ? BONUS : 0;
+      return { points: M.config.points.snack + bonus, end: s.eaten >= TARGET ? 'victory' : null, title: 'Misi Selesai!' };
+    },
+    avoidCells: function (s) {
+      var out = [];
+      if (!s.tiles) return out;
+      s.tiles.forEach(function (t) { if (t.c === s.forbidden || t.c === s.nextForbidden) out.push(t.x + ',' + t.y); });
+      return out;
+    },
+    getObjective: function (s) {
+      var rule = COLORS[s.forbidden].name + (s.nextForbidden ? ' → ' + COLORS[s.nextForbidden].name : '');
+      return [
+        { label: 'Target', value: s.eaten + '/' + TARGET },
+        { label: 'Nyawa', value: '♥'.repeat(Math.max(0, s.lives)) + '♡'.repeat(LIVES - Math.max(0, s.lives)) },
+        { label: 'Terlarang', value: rule },
+        { label: 'Bonus +' + BONUS, value: COLORS[s.targetColor].name }
+      ];
+    }
+  });
+})(window.Mufa = window.Mufa || {});

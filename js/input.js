@@ -1,110 +1,50 @@
-// ===== Input keyboard + touch, dengan antrean arah =====
-const Input = (() => {
-  const queue = [];
-  let enabled = false;
-
-  const KEY_MAP = {
-    ArrowUp: "up",
-    ArrowDown: "down",
-    ArrowLeft: "left",
-    ArrowRight: "right",
-    w: "up",
-    s: "down",
-    a: "left",
-    d: "right",
-    W: "up",
-    S: "down",
-    A: "left",
-    D: "right",
+(function (M) {
+  var KEYS = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    w: 'up', W: 'up', s: 'down', S: 'down', a: 'left', A: 'left', d: 'right', D: 'right'
   };
 
-  function push(dir) {
-    if (!enabled) return;
-    if (!CONFIG.DIRS[dir]) return;
-    // Hindari dua arah sama berturut-turut
-    const last = queue.length ? queue[queue.length - 1] : null;
-    if (last === dir) return;
-    if (queue.length < 2) queue.push(dir);
-  }
-  function consume() {
-    const d = queue.shift() || null;
-    if (d && window._mufaReverseInput) {
-      window._mufaReverseInput = false; // pakai sekali saja
-      const map = { up: "down", down: "up", left: "right", right: "left" };
-      return map[d] || d;
-    }
-    return d;
-  }
-  function clear() {
-    queue.length = 0;
-  }
-  function setEnabled(v) {
-    enabled = v;
-    if (!v) clear();
+  function inGame() {
+    return document.getElementById('screen-game').classList.contains('active') &&
+      document.getElementById('panel').classList.contains('hidden');
   }
 
-  // Keyboard
-  window.addEventListener("keydown", (e) => {
-    if (KEY_MAP[e.key]) {
-      e.preventDefault();
-      push(KEY_MAP[e.key]);
-    }
-    if (e.key === " " || e.key === "Escape") {
-      e.preventDefault();
-      window.dispatchEvent(new CustomEvent("mufa:toggle-pause"));
-    }
-  });
+  M.input = {
+    // handlers: { onDir(name), onPause(), onEsc() }
+    init: function (h) {
+      window.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key === 'Escape') { h.onEsc(); return; }
+        if (!inGame()) return; // di menu dan panel, tombol bekerja seperti biasa
+        var dir = KEYS[e.key];
+        if (dir) { e.preventDefault(); h.onDir(dir); return; }
+        if (e.code === 'Space') {
+          e.preventDefault();
+          if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+          h.onPause();
+        }
+      });
 
-  // Touch swipe pada canvas
-  function attachSwipe(el) {
-    let sx = 0,
-      sy = 0,
-      tracking = false;
-    el.addEventListener(
-      "touchstart",
-      (e) => {
-        const t = e.touches[0];
-        sx = t.clientX;
-        sy = t.clientY;
-        tracking = true;
-      },
-      { passive: true },
-    );
-    el.addEventListener(
-      "touchmove",
-      (e) => {
-        if (!tracking) return;
-        const t = e.touches[0];
-        const dx = t.clientX - sx,
-          dy = t.clientY - sy;
-        if (Math.hypot(dx, dy) < 24) return;
-        tracking = false;
-        if (Math.abs(dx) > Math.abs(dy)) push(dx > 0 ? "right" : "left");
-        else push(dy > 0 ? "down" : "up");
-      },
-      { passive: true },
-    );
-    el.addEventListener(
-      "touchend",
-      () => {
-        tracking = false;
-      },
-      { passive: true },
-    );
-  }
-
-  // Tombol D-pad
-  function attachButtons(root) {
-    root.querySelectorAll(".dpad").forEach((btn) => {
-      const dir = btn.dataset.dir;
-      const fire = (e) => {
+      // Geser di area arena (tidak mengganggu tombol pada overlay)
+      var wrap = document.getElementById('arena-wrap'), sx = 0, sy = 0, on = false, TH = 24;
+      wrap.addEventListener('touchstart', function (e) {
+        if (e.target.closest('.overlay')) { on = false; return; }
+        on = true; e.preventDefault();
+        sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+      }, { passive: false });
+      wrap.addEventListener('touchmove', function (e) {
+        if (!on) return;
         e.preventDefault();
-        push(dir);
-      };
-      btn.addEventListener("touchstart", fire, { passive: false });
-      btn.addEventListener("mousedown", fire);
-    });
-  }
+        var t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+        if (Math.abs(dx) < TH && Math.abs(dy) < TH) return;
+        h.onDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+        sx = t.clientX; sy = t.clientY;
+      }, { passive: false });
+      wrap.addEventListener('touchend', function () { on = false; });
 
-  return { push, consume, clear, setEnabled, attachSwipe, attachButtons };
-})();
+      document.querySelectorAll('.dpad button').forEach(function (b) {
+        b.addEventListener('pointerdown', function (e) { e.preventDefault(); h.onDir(b.dataset.dir); });
+      });
+    }
+  };
+})(window.Mufa = window.Mufa || {});

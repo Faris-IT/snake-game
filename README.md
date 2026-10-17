@@ -1,234 +1,137 @@
-# 🐍 MUFA SNACK
+<p align="center">
+  <img src="assets/banner.svg" alt="Mufa Snack — game arcade ular dengan 12 mode" width="100%">
+</p>
 
-<div align="center">
+<p align="center">
+  <a href="https://USERNAME.github.io/mufa-snack/"><b>▶ Main sekarang</b></a>
+</p>
 
-**Arcade · Snake · Strategy · Survival**
+<p align="center">
+  <img alt="HTML5" src="https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white">
+  <img alt="CSS3" src="https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white">
+  <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black">
+  <img alt="12 mode" src="https://img.shields.io/badge/mode-12-3ddc84">
+  <img alt="Tanpa dependensi" src="https://img.shields.io/badge/dependensi-0-22d3ee">
+  <img alt="Lisensi MIT" src="https://img.shields.io/badge/lisensi-MIT-blue">
+</p>
 
-Game arcade Snake dengan **12 mode permainan**, **10 achievements**, dan **4 tema visual** — dibangun murni menggunakan HTML, CSS, dan JavaScript.
+**Mufa Snack** adalah game arcade ular dengan 12 mode yang aturannya benar-benar berbeda. Semuanya dibuat dengan
+HTML, CSS, dan JavaScript murni: grafik digambar lewat kode, efek suara dibuat dengan Web Audio, dan tidak ada
+framework, library, aset gambar, atau backend. Game 01 dari **Mufa Games**.
 
-Tanpa framework. Tanpa backend. Tanpa aset eksternal.
+## Kenapa seru
+- **12 mode, bukan satu game dengan 12 nama:** dari labirin, portal, zona bahaya, aturan warna yang berganti, sampai efek acak.
+- **3 tingkat kesulitan** dengan rekor terpisah untuk setiap mode.
+- **13 pencapaian** dan **tema** (Ocean, Sunset, Neon) yang terbuka lewat permainan.
+- **Main di desktop maupun HP:** keyboard, geser layar, atau tombol arah virtual.
+- **Ringan dan offline:** setelah dimuat, tidak ada permintaan jaringan; progres tersimpan di browser.
 
-[![▶ Mainkan Sekarang](https://img.shields.io/badge/▶_Mainkan-Sekarang-3ef58b?style=for-the-badge)](https://faris-it.github.io/snake-game/)
-[![JavaScript](https://img.shields.io/badge/Made_with-JavaScript-f7df1e?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![No Dependencies](https://img.shields.io/badge/Dependencies-0-2ee6ff?style=for-the-badge)](https://github.com/Faris-IT/snake-game)
+<p align="center">
+  <img src="docs/gameplay.gif" width="46%" alt="Cuplikan permainan Mufa Snack">
+</p>
 
-</div>
+## Tampilan
+<p align="center">
+  <img src="docs/menu.png" width="48%" alt="Menu: 12 mode dan 3 tingkat kesulitan">
+  <img src="docs/gameplay.png" width="48%" alt="Arena permainan">
+</p>
 
----
+## Menjalankan
+Buka `index.html` di browser (klik dua kali sudah cukup), atau jalankan server statis lokal:
 
-## 🎮 Apa Itu Mufa Snack?
-
-**Mufa Snack** adalah pengembangan modern dari game klasik *Snake*. Bukan hanya satu mode permainan, Mufa Snack menghadirkan **12 mode dengan aturan, tujuan, dan strategi yang berbeda**.
-
-Ada mode untuk mengejar skor tertinggi, bertahan hidup, menyelesaikan misi, menghindari bahaya, hingga merencanakan jalur terbaik.
-
-Seluruh grafis, animasi, dan efek visual dibuat secara programatis menggunakan **Canvas API dan CSS**. Tidak ada file gambar, sprite, atau audio eksternal yang diperlukan.
-
-Cukup buka `index.html` di browser dan mulai bermain!
-
-## ✨ Fitur
-
-- 🎲 **12 mode permainan** dengan aturan dan tantangan berbeda.
-- 🏆 **10 achievements** dengan notifikasi toast.
-- 📊 **Statistik lokal**, meliputi total sesi, snack yang dikumpulkan, kemenangan, mode favorit, dan rekor setiap mode.
-- 🎨 **4 tema visual**: Default, Ocean, Sunset, dan Neon.
-- ✨ **Efek partikel** saat mengumpulkan snack.
-- 📱 **Responsif** untuk desktop dan perangkat mobile.
-- ⌨️ **Kontrol desktop** menggunakan tombol panah atau WASD.
-- 📲 **Kontrol mobile** menggunakan swipe atau D-pad.
-- ⚡ **Ringan** tanpa framework, library eksternal, atau proses build.
-- 💾 **Penyimpanan lokal** untuk statistik, pengaturan, achievements, dan rekor.
-- 🌐 **Dapat dimainkan secara lokal** tanpa koneksi internet setelah seluruh file tersedia.
-
-## 🕹️ Cara Bermain
-
-| Aksi | Desktop | Mobile |
-|---|---|---|
-| Bergerak | `↑` `↓` `←` `→` atau `W` `A` `S` `D` | Swipe atau D-pad |
-| Jeda / lanjut | `Space` atau `Esc` | Tombol ⏸ |
-
-Kendalikan ular untuk **mengumpulkan snack, menyelesaikan target mode, dan menghindari bahaya**.
-
-Setiap mode memiliki tujuan dan aturan yang berbeda. Perhatikan HUD selama permainan untuk mengetahui target, skor, waktu, nyawa, atau objektif yang sedang aktif.
-
-## 🎯 12 Mode Permainan
-
-| No. | Mode | Tujuan |
-|---:|---|---|
-| 1 | 🍎 **Classic Snack** | Mendapatkan skor setinggi mungkin. |
-| 2 | ⏱️ **Time Rush** | Meraih skor maksimal dalam 60 detik. |
-| 3 | 🌀 **Maze Runner** | Mengumpulkan 5 snack dan mencapai pintu keluar labirin. |
-| 4 | 🎯 **Snack Hunter** | Mengumpulkan 20 snack dengan 3 nyawa. |
-| 5 | 🔥 **Danger Zone** | Bertahan sambil menghindari zona bahaya yang terus muncul. |
-| 6 | 🌌 **Portal Snack** | Mengumpulkan 15 snack dengan bantuan 4 pasang portal. |
-| 7 | 🎨 **Color Rules** | Beradaptasi dengan aturan warna yang berganti setiap 10 detik. |
-| 8 | ❓ **Mystery Snack** | Menghadapi efek acak dan mengambil risiko secara strategis. |
-| 9 | 📏 **No Growth** | Mengejar skor tanpa memperpanjang tubuh ular. |
-| 10 | 🔥 **Combo Chain** | Mempertahankan rangkaian combo hingga pengali ×5. |
-| 11 | 🚩 **Path Master** | Mengunjungi 5 checkpoint secara berurutan. |
-| 12 | ♾️ **Endless Survival** | Bertahan selama mungkin dan mengejar rekor pribadi. |
-
-## 🚀 Menjalankan Secara Lokal
-
-Tidak diperlukan instalasi framework, package manager, atau dependensi tambahan.
-
-### 1. Clone repository
-
-```bash
-git clone https://github.com/Faris-IT/snake-game.git
+```
+python3 -m http.server
 ```
 
-### 2. Masuk ke direktori proyek
+lalu buka `http://localhost:8000`.
 
-```bash
-cd snake-game
+## Kontrol
+- **Desktop:** Panah atau WASD untuk bergerak, Space untuk jeda/lanjut, Esc untuk menu jeda.
+- **Mobile:** geser di area arena, atau pakai tombol arah di layar.
+  Tombol arah muncul otomatis di perangkat sentuh dan bisa diatur di Pengaturan (Otomatis/Aktif/Mati).
+
+## Mode permainan
+| Mode | Aturan singkat |
+|---|---|
+| Classic Snack | Skor setinggi mungkin. Kecepatan naik tiap 5 snack. |
+| Time Rush | 60 detik. Kecepatan naik tiap 10 detik. |
+| Maze Runner | Kumpulkan 5 snack, masuk pintu keluar. 10 level, +50 poin per level. |
+| Snack Hunter | Kumpulkan 20 snack dengan 3 nyawa. Snack bonus oranye (30 poin) tidak dihitung ke target. |
+| Danger Zone | Zona merah berkedip 2 detik lalu aktif. 3 nyawa. |
+| Portal Snack | 15 snack. Dua portal; tidak aktif jika titik keluar ditempati ular. |
+| Color Rules | 15 snack. Hindari warna terlarang (bertanda X). Snack warna target +20. 3 nyawa. |
+| Mystery Snack | 90 detik. Snack "?" memberi efek acak (bonus, memendek, perlambatan, perisai). |
+| No Growth | Ular tidak bertambah panjang. Kecepatan naik tiap 10 snack. |
+| Combo Chain | Snack berurutan dalam 5 detik menaikkan pengali hingga ×5. |
+| Path Master | 5 checkpoint berurutan lalu pintu keluar. 10 level, 3 nyawa. |
+| Endless Survival | Rintangan baru muncul seiring progres (dengan peringatan). |
+
+Tiga tingkat kesulitan (Mudah, Normal, Sulit) mengubah kecepatan dan jumlah rintangan; skor tidak berubah.
+Rekor disimpan terpisah untuk setiap mode dan kesulitan.
+
+## Pencapaian dan tema
+13 pencapaian tersedia di menu Pencapaian. Tema tambahan hanya mengubah tampilan:
+- **Ocean:** makan 100 snack total (pencapaian Pemakan Snack)
+- **Sunset:** menangkan mode apa pun (pencapaian Pemenang)
+- **Neon:** mainkan semua 12 mode (pencapaian Penjelajah Mode)
+
+## Penyimpanan
+Pengaturan, statistik, pencapaian, dan rekor disimpan di `localStorage` pada browser dan perangkat yang dipakai
+(kunci `mufa-snack:v1`). Menu Pengaturan memiliki tombol untuk menghapus semua data.
+
+## Struktur proyek
+```
+index.html            halaman tunggal
+css/                  reset, style (tema), menu, game, panel, responsive
+js/config.js          konfigurasi arena, kecepatan, skor, tema, daftar mode
+js/game-engine.js     siklus game, status, gerak, hook mode, helper untuk mode
+js/collision.js       tabrakan dinding, tubuh sendiri, rintangan
+js/scoring.js         skor dan kecepatan
+js/renderer.js        gambar Canvas
+js/input.js           keyboard, geser, tombol arah
+js/storage.js         localStorage
+js/achievements.js    daftar dan evaluasi pencapaian
+js/audio.js           efek suara (Web Audio, tanpa file audio)
+js/i18n.js            teks antarmuka
+js/ui.js, main.js     menu, HUD, panel, inisialisasi
+js/modes/*.js         aturan unik tiap mode
+js/utils/*.js         grid, BFS, generator dinding, acak
+tests/logic.test.js   uji logika tanpa browser
+TESTING.md            checklist rilis
 ```
 
-### 3. Jalankan game
+## Menambah mode
+1. Buat `js/modes/nama-mode.js` yang memanggil `Mufa.defineMode({ id: '...', ... })`.
+2. Tambahkan `<script>` file tersebut di `index.html` sebelum `js/ui.js`.
+3. Pastikan `id` sama dengan yang ada di `js/config.js`; kartu mode otomatis aktif di menu.
 
-Buka file `index.html` menggunakan browser.
+Hook yang bisa ditimpa (semua opsional, bawaan ada di `game-engine.js`):
+`onStart(s)`, `onTick(s, dt)`, `onMove(s, head)`, `onEat(s)` (boleh mengembalikan `end`/`title`),
+`onItem(s, item)`, `onBeforeMove(s, next)`, `onFoodSpawn(s, food)`, `avoidCells(s)`,
+`onCollision(s, type)`, `getObjective(s)`, serta `speedMs(s)` dan properti `grow`, `speedEvery`.
+Helper engine untuk mode: `Mufa.engine.end()`, `resetSnake()`, `respawnFood()`, `occupied()`,
+`clearZone()`, `hold()`, `loseLife(title, text)`.
 
-### Alternatif: menggunakan server lokal
+## Menambah bahasa
+Teks antarmuka (menu, HUD, panel) ada di `js/i18n.js`. Tambahkan bahasa dengan
+`Mufa.i18n.register('en', 'English', { ...kunci yang sama... })`; pilihan bahasa muncul otomatis di Pengaturan.
+Nama dan deskripsi mode ada di `js/config.js`, serta teks di dalam setiap file mode dan nama pencapaian di
+`js/achievements.js`, jadi ikut diterjemahkan jika bahasa baru ditambahkan.
 
-Untuk pengujian melalui localhost, jalankan:
+## Publikasi
+Game ini statis, jadi cukup diunggah ke layanan hosting statis.
 
-```bash
-python -m http.server 8080
-```
+**GitHub Pages:** buat repository `mufa-snack`, unggah seluruh isi folder, lalu aktifkan Pages
+(Settings → Pages → Deploy from a branch → `main` / root). Alamatnya berbentuk `https://<akun>.github.io/mufa-snack/`.
 
-Kemudian buka alamat berikut di browser:
+**Cloudflare Pages:** hubungkan repository, biarkan build command kosong, dan isi output directory dengan `/`.
 
-http://localhost:8080
+Setelah URL aktif, tambahkan kartu Mufa Snack di katalog Mufa Games yang mengarah ke URL tersebut.
+Memperbarui game cukup dengan mengunggah ulang file; website Mufa Games tidak perlu dibangun ulang.
 
-Jika perintah `python` tidak tersedia, kamu dapat mencoba `python3` atau menggunakan server lokal dari editor kode.
+## Pengujian
+- `node tests/logic.test.js` menjalankan uji logika (arena, mode, nyawa, skor, penyimpanan).
+- `TESTING.md` berisi checklist rilis yang perlu diuji manual di desktop dan mobile.
 
-## 📁 Struktur Proyek
-
-```text
-snake-game/
-├── index.html
-├── css/
-│   ├── reset.css
-│   ├── style.css
-│   └── responsive.css
-└── js/
-    ├── config.js
-    ├── storage.js
-    ├── themes.js
-    ├── particles.js
-    ├── achievements.js
-    ├── scoring.js
-    ├── collision.js
-    ├── input.js
-    ├── renderer.js
-    ├── game-engine.js
-    ├── ui.js
-    ├── main.js
-    └── modes/
-        └── (12 file mode permainan)
-```
-
-**Catatan:** Nama file di atas menggambarkan struktur yang direncanakan berdasarkan arsitektur proyek. Pastikan nama dan isi folder disesuaikan dengan file yang benar-benar tersedia di repository.
-
-## 🏗️ Arsitektur
-
-Mufa Snack menggunakan satu **game engine bersama** untuk mengatur pergerakan ular, tabrakan, rendering, dan siklus permainan.
-
-Setiap mode memiliki konfigurasi serta aturan tersendiri melalui API internal. Contoh bentuk objek mode:
-
-```javascript
-{
-  id,
-  name,
-  desc,
-  ready,
-
-  config: {
-    stepMs,
-    growOnEat,
-    lives
-  },
-
-  onStart(ctx),
-  onTick(ctx, dt),
-  onAfterMove(ctx),
-  onEat(ctx, kind),
-  onCollision(ctx),
-  spawnSnack(ctx),
-  getObjective(ctx),
-  isWin(ctx),
-  isLose(ctx)
-}
-```
-
-Fungsi-fungsi tersebut menggambarkan antarmuka internal mode; detail implementasinya mengikuti kode aktual masing-masing mode.
-
-Arsitektur modular ini memisahkan mekanik permainan dari aturan mode sehingga perubahan pada satu mode tidak harus mengubah seluruh game engine.
-
-## 🛠️ Teknologi
-
-- **HTML5** — struktur halaman dan elemen Canvas.
-- **CSS3** — layout, tema visual, animasi, dan modal.
-- **JavaScript (ES6+)** — logika permainan, sistem mode modular, dan penyimpanan lokal.
-- **Canvas API** — rendering arena, grid, ular, snack, dan efek partikel.
-- **localStorage** — penyimpanan statistik, pengaturan, achievements, dan rekor pada browser.
-
-### Tanpa dependensi eksternal
-
-Mufa Snack tidak membutuhkan:
-
-- Framework JavaScript.
-- Library eksternal.
-- `package.json`.
-- `node_modules`.
-- Proses bundling atau build.
-- Backend atau database online.
-- Aset gambar dan audio eksternal.
-
-## 💾 Penyimpanan Data
-
-Game menggunakan `localStorage` untuk menyimpan progres pemain secara lokal.
-
-Data yang disimpan dapat mencakup:
-
-- Rekor skor setiap mode.
-- Statistik permainan.
-- Achievements yang telah diperoleh.
-- Tema visual dan pengaturan.
-
-Data lokal terikat pada browser dan perangkat yang digunakan. Data tidak otomatis tersinkronisasi ke perangkat lain dan dapat hilang jika penyimpanan browser dihapus.
-
-## 🌐 Deployment
-
-Mufa Snack dapat di-host menggunakan layanan hosting statis yang mendukung HTML, CSS, dan JavaScript.
-
-Versi online dapat dimainkan melalui:
-
-**[🎮 Mainkan Mufa Snack](https://faris-it.github.io/snake-game/)**
-
-Jika alamat deployment berubah, perbarui tautan tersebut sesuai URL terbaru.
-
-## 🗺️ Pengembangan Selanjutnya
-
-Ide pengembangan lanjutan untuk versi mendatang:
-
-- 🌐 Integrasi dengan platform Mufa Games.
-- 🏆 Sinkronisasi achievements lintas game.
-- 📊 Leaderboard terpusat.
-- 🎮 Sistem statistik lintas game.
-- 🎨 Tema visual tambahan.
-- 🕹️ Mode permainan baru.
-
-Fitur online seperti leaderboard dan sinkronisasi memerlukan integrasi dengan layanan atau backend yang sesuai dan tidak termasuk dalam sistem penyimpanan lokal versi mandiri.
-
----
-
-<div align="center">
-
-**Dibuat dengan ❤️ oleh [Faris](https://github.com/Faris-IT)**
-
-⭐ Jika kamu menyukai proyek ini, pertimbangkan untuk memberikan **Star** pada repository!
-
-[![▶ Mainkan Mufa Snack](https://img.shields.io/badge/🎮_Mainkan-Mufa_Snack-3ef58b?style=for-the-badge)](https://faris-it.github.io/snake-game/)
-
-</div>
+## Lisensi
+Lihat `LICENSE`.

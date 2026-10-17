@@ -1,256 +1,215 @@
-// ===== Game Engine (mendukung sistem mode) =====
-const GameEngine = (() => {
-  const state = {
-    status: "menu",
-    cols: CONFIG.GRID_COLS,
-    rows: CONFIG.GRID_ROWS,
-    body: [],
-    dir: "right",
-    nextDir: "right",
-    snack: null,
-    bonus: null,
-    obstacles: [],
-    tiles: [],
-    portals: [],
-    exit: null,
-    exitUnlocked: false,
-    score: 0,
-    eaten: 0,
-    stepMs: CONFIG.BASE_STEP_MS,
-    minStepMs: CONFIG.MIN_STEP_MS,
-    accMs: 0,
-    lastTs: 0,
-    elapsedMs: 0,
-    lives: 1,
-    maxLives: 1,
-    growOnEat: true,
-    mode: null,
-    modeId: "classic",
-    onGameOver: null,
-    onVictory: null,
-    onScoreChange: null,
-    onHudChange: null,
-    onSnackEaten: null,   // callback tambahan untuk achievements & partikel
+(function (M) {
+  var DIRS = M.grid.DIRS;
+  var s = null, raf = 0, last = 0, acc = 0, hooks = {};
+
+  // Kontrak mode. Setiap mode hanya menimpa hook yang dibutuhkan.
+  var DEFAULTS = {
+    grow: true,
+    speedEvery: 5,
+    onStart: function (s) {},
+    onTick: function (s, dt) {},                 // tiap frame saat playing (berhenti saat jeda)
+    onMove: function (s, head) {},
+    onBeforeMove: function (s, next) { return next; },   // boleh mengubah sel tujuan (portal)
+    onFoodSpawn: function (s, food) {},                  // boleh mengubah snack baru (warna)
+    avoidCells: function (s) { return []; },             // sel "x,y" yang tidak boleh ditempati snack/item               // setelah ular bergerak
+    onEat: function (s) { return { points: M.config.points.snack }; },   // boleh menambah end/title
+    onItem: function (s, item) { return { points: item.points || 0 }; },
+    onCollision: function (s, type) { return 'game-over'; },  // 'game-over' atau nilai lain jika mode menangani sendiri
+    getObjective: function (s) { return [{ label: 'Panjang', value: s.snake.length }]; }
   };
 
-  const helpers = {
-    spawnSnackAt(pos) { state.snack = pos; },
-    spawnSnackRandom() { state.snack = GameEngine.pickEmptyCell(); },
-    spawnBonusRandom() { state.bonus = GameEngine.pickEmptyCell(); },
-    clearBonus() { state.bonus = null; },
-    setTiles(list) { state.tiles = list || []; },
-    clearTiles() { state.tiles = []; },
-    getOccupied() {
-      const set = new Set();
-      state.body.forEach(s => set.add(`${s.x},${s.y}`));
-      state.obstacles.forEach(o => set.add(`${o.x},${o.y}`));
-      if (state.snack) set.add(`${state.snack.x},${state.snack.y}`);
-      if (state.bonus) set.add(`${state.bonus.x},${state.bonus.y}`);
-      if (state.exit)  set.add(`${state.exit.x},${state.exit.y}`);
-      return set;
-    },
-    endGame() { gameOver(); },
-    endVictory() { gameVictory(); },
-    emitHud() { if (state.onHudChange) state.onHudChange(state); },
+  M.defineMode = function (def) {
+    var m = Object.assign({}, DEFAULTS, def);
+    (M.modes = M.modes || {})[m.id] = m;
+    return m;
   };
 
-  function pickEmptyCell() {
-    const occupied = helpers.getOccupied();
-    const empty = [];
-    for (let y = 0; y < state.rows; y++) {
-      for (let x = 0; x < state.cols; x++) {
-        if (!occupied.has(`${x},${y}`)) empty.push({ x, y });
-      }
-    }
-    if (!empty.length) return null;
-    return empty[Math.floor(Math.random() * empty.length)];
+  function emit(name) { if (hooks.onEvent) hooks.onEvent(name); }
+
+  function setState(st) {
+    if (!s) return;
+    s.state = st;
+    if (hooks.onState) hooks.onState(s);
   }
 
-  function makeCtx() {
-    return Object.assign(state, helpers);
+  function clearZone(sess) {
+    var cx = Math.floor(sess.cols / 2), cy = Math.floor(sess.rows / 2), set = new Set();
+    for (var x = cx - 4; x <= cx + 6; x++)
+      for (var y = cy - 2; y <= cy + 2; y++) set.add(x + ',' + y);
+    return set;
   }
 
-  function reset(modeId = "classic") {
-    const mode = ModeRegistry.get(modeId);
-    if (!mode) { console.warn("Mode tidak ditemukan:", modeId); return; }
-
-    state.mode = mode;
-    state.modeId = modeId;
-
-    state.cols = CONFIG.GRID_COLS;
-    state.rows = CONFIG.GRID_ROWS;
-    state.body = [];
-    state.obstacles = [];
-    state.tiles = [];
-    state.portals = [];
-    state.snack = null;
-    state.bonus = null;
-    state.exit = null;
-    state.exitUnlocked = false;
-    state.score = 0;
-    state.eaten = 0;
-    state.stepMs = (mode.config && mode.config.stepMs) || CONFIG.BASE_STEP_MS;
-    state.minStepMs = (mode.config && mode.config.minStepMs) || CONFIG.MIN_STEP_MS;
-    state.accMs = 0;
-    state.elapsedMs = 0;
-    state.lives = (mode.config && mode.config.lives) || 1;
-    state.maxLives = state.lives;
-    state.growOnEat = (mode.config && mode.config.growOnEat) !== false;
-    state.dir = (mode.config && mode.config.startDir) || "right";
-    state.nextDir = state.dir;
-    state.status = "playing";
-
-    Input.clear();
-    Input.setEnabled(true);
-    Particles.clear();
-
-    const cx = Math.floor(state.cols / 2);
-    const cy = Math.floor(state.rows / 2);
-    const startLen = (mode.config && mode.config.startLength) || CONFIG.START_LENGTH;
-    for (let i = 0; i < startLen; i++) {
-      state.body.push({ x: cx - i, y: cy });
-    }
-
-    if (mode.onStart) mode.onStart(makeCtx());
-
-    if (mode.spawnSnack) mode.spawnSnack(makeCtx());
-    else if (!state.snack) helpers.spawnSnackRandom();
-
-    if (state.onScoreChange) state.onScoreChange(state.score);
-    helpers.emitHud();
+  function occupied() {
+    var set = new Set(s.obstacles);
+    s.snake.forEach(function (c) { set.add(c.x + ',' + c.y); });
+    s.items.forEach(function (c) { set.add(c.x + ',' + c.y); });
+    if (s.food) set.add(s.food.x + ',' + s.food.y);
+    if (s.door) set.add(s.door.x + ',' + s.door.y);
+    s.mode.avoidCells(s).forEach(function (k) { set.add(k); });
+    return set;
   }
 
-  function tick(dt) {
-    const mode = state.mode;
-    if (!mode) return;
-    const ctx = makeCtx();
-
-    state.elapsedMs += dt;
-
-    if (mode.onTick) mode.onTick(ctx, dt);
-
-    if (mode.isLose && mode.isLose(ctx)) { gameOver(); return; }
-    if (mode.isWin  && mode.isWin(ctx))  { gameVictory(); return; }
-
-    const cur = CONFIG.DIRS[state.dir];
-    const nxt = CONFIG.DIRS[state.nextDir];
-    if (!(cur.x + nxt.x === 0 && cur.y + nxt.y === 0)) {
-      state.dir = state.nextDir;
-    }
-    const delta = CONFIG.DIRS[state.dir];
-    const head = state.body[0];
-    const newHead = { x: head.x + delta.x, y: head.y + delta.y };
-
-    const willEatSnack = Collision.sameCell(newHead, state.snack);
-    const willEatBonus = Collision.sameCell(newHead, state.bonus);
-    const willEat = willEatSnack || willEatBonus;
-    const willGrow = willEat && state.growOnEat;
-
-    if (Collision.isWall(newHead, state.cols, state.rows)) {
-      if (mode.onCollision && mode.onCollision(ctx, "wall")) return;
-      gameOver(); return;
-    }
-    if (Collision.cellIn(newHead, state.obstacles)) {
-      if (mode.onCollision && mode.onCollision(ctx, "obstacle")) return;
-      gameOver(); return;
-    }
-    if (Collision.isSelf(state.body, newHead, willGrow)) {
-      if (mode.onCollision && mode.onCollision(ctx, "self")) return;
-      gameOver(); return;
-    }
-
-    state.body.unshift(newHead);
-
-    if (mode.onAfterMove) mode.onAfterMove(ctx, newHead);
-
-    const headNow = state.body[0];
-    const ateSnack = Collision.sameCell(headNow, state.snack);
-    const ateBonus = Collision.sameCell(headNow, state.bonus);
-
-    if (ateSnack) {
-      state.eaten++;
-      if (mode.onEat) mode.onEat(ctx, "snack");
-      else state.score += CONFIG.SCORE_NORMAL;
-      // Partikel + callback
-      Particles.emit(
-        headNow.x * Renderer.getCell() + Renderer.getCell() / 2,
-        headNow.y * Renderer.getCell() + Renderer.getCell() / 2,
-        CONFIG.COLORS.snack, 10
-      );
-      if (state.onSnackEaten) state.onSnackEaten(state);
-      state.snack = null;
-      if (mode.spawnSnack) mode.spawnSnack(ctx);
-      else if (!state.snack) helpers.spawnSnackRandom();
-      if (state.onScoreChange) state.onScoreChange(state.score);
-    } else if (ateBonus) {
-      if (mode.onEat) mode.onEat(ctx, "bonus");
-      else state.score += CONFIG.SCORE_BONUS;
-      Particles.emit(
-        headNow.x * Renderer.getCell() + Renderer.getCell() / 2,
-        headNow.y * Renderer.getCell() + Renderer.getCell() / 2,
-        CONFIG.COLORS.bonus, 16
-      );
-      state.bonus = null;
-      if (state.onScoreChange) state.onScoreChange(state.score);
-    }
-
-    if (!willGrow) state.body.pop();
-
-    helpers.emitHud();
+  function spawnFood() {
+    s.food = null;
+    if (s.noFood) return true;
+    s.food = M.random.emptyCell(s.cols, s.rows, occupied());
+    if (s.food) s.mode.onFoodSpawn(s, s.food);
+    return !!s.food;
   }
 
-  function gameOver() {
-    state.status = "game-over";
-    Input.setEnabled(false);
-    if (state.onGameOver) state.onGameOver(state.score, state);
-  }
-  function gameVictory() {
-    state.status = "victory";
-    Input.setEnabled(false);
-    if (state.onVictory) state.onVictory(state.score, state);
+  function placeSnake() {
+    var cx = Math.floor(s.cols / 2), cy = Math.floor(s.rows / 2);
+    s.snake = [];
+    for (var i = 0; i < M.config.initialLength; i++) s.snake.push({ x: cx - i, y: cy });
+    s.dir = { x: 1, y: 0 };
+    s.queue = [];
+    acc = 0;
   }
 
-  function pause() {
-    if (state.status !== "playing") return;
-    state.status = "paused";
-    Input.setEnabled(false);
+  function finish(status, title) {
+    if (!s || s.state === 'game-over' || s.state === 'victory') return;
+    s.result = status;
+    s.endTitle = title || null;
+    s.newBest = M.storage.recordResult(s.modeId, s.diffKey, s.score, s.eaten, status === 'victory');
+    s.best = Math.max(s.best, s.score);
+    s.unlocked = M.achievements ? M.achievements.check(s) : [];
+    emit(status === 'victory' ? 'win' : 'over');
+    setState(status);
   }
-  function resume() {
-    if (state.status !== "paused") return;
-    state.status = "playing";
-    state.lastTs = performance.now();
-    Input.setEnabled(true);
+
+  function itemIndex(p) {
+    for (var i = 0; i < s.items.length; i++) if (s.items[i].x === p.x && s.items[i].y === p.y) return i;
+    return -1;
+  }
+
+  function step() {
+    if (s.queue.length) s.dir = s.queue.shift();
+    var head = s.snake[0];
+    var next = { x: head.x + s.dir.x, y: head.y + s.dir.y };
+    next = s.mode.onBeforeMove(s, next);
+    var ate = !!s.food && next.x === s.food.x && next.y === s.food.y;
+    var ii = itemIndex(next), item = ii >= 0 ? s.items[ii] : null;
+    var grow = (ate && s.mode.grow !== false) || (!!item && !!item.grow);
+
+    var hit = M.collision.check(s, next, grow);
+    if (hit) {
+      var out = s.mode.onCollision(s, hit);
+      if (out === 'game-over') finish('game-over');
+      return; // selain 'game-over', mode sudah menangani sendiri (misalnya kehilangan nyawa)
+    }
+
+    s.snake.unshift(next);
+    if (!grow) s.snake.pop();
+
+    if (item) {
+      s.items.splice(ii, 1);
+      var ri = s.mode.onItem(s, item);
+      M.scoring.add(s, ri.points || 0);
+      M.renderer.burst(next.x, next.y);
+      emit('item');
+    }
+
+    if (ate) {
+      s.eaten++;
+      var r = s.mode.onEat(s);
+      M.scoring.add(s, r.points || 0);
+      M.renderer.burst(next.x, next.y);
+      emit('eat');
+      if (r.end) { finish(r.end, r.title); return; }
+      if (!spawnFood()) { finish('victory'); return; } // papan penuh
+    }
+
+    s.mode.onMove(s, next);
+    if (s.state !== 'playing') return;
+    if (hooks.onUpdate) hooks.onUpdate(s);
   }
 
   function loop(ts) {
-    requestAnimationFrame(loop);
-    if (state.status !== "playing") {
-      state.lastTs = ts;
-      Renderer.render(state);
-      return;
+    raf = requestAnimationFrame(loop);
+    var dt = Math.min(ts - last, 100);
+    last = ts;
+    if (s && s.state === 'playing') {
+      acc += dt;
+      s.timeMs += dt;
+      s.mode.onTick(s, dt);
+      var ms = M.scoring.speedMs(s), n = 0, max = M.config.maxStepsPerFrame;
+      while (s.state === 'playing' && acc >= ms && n < max) { acc -= ms; step(); n++; }
+      if (n === max) acc = 0;
+      if (hooks.onUpdate) hooks.onUpdate(s);
     }
-    const dt = ts - (state.lastTs || ts);
-    state.lastTs = ts;
-    state.accMs += dt;
-    Particles.update(dt);
-
-    while (state.accMs >= state.stepMs) {
-      state.accMs -= state.stepMs;
-      const d = Input.consume();
-      if (d) state.nextDir = d;
-      if (state.status === "playing") tick(state.stepMs);
-      else break;
-    }
-    Renderer.render(state);
+    M.renderer.draw(s, dt / 1000);
   }
 
-  function start() {
-    state.lastTs = performance.now();
-    requestAnimationFrame(loop);
+  function startLoop() {
+    if (raf) return;
+    last = performance.now();
+    raf = requestAnimationFrame(loop);
   }
 
-  return {
-    state, reset, pause, resume, start,
-    pickEmptyCell, makeCtx, helpers,
+  function stopLoop() { cancelAnimationFrame(raf); raf = 0; }
+
+  M.engine = {
+    init: function (h) { hooks = h; },
+    getSession: function () { return s; },
+
+    // Helper untuk mode
+    end: function (status, title) { finish(status, title); },
+    resetSnake: function () { placeSnake(); setState('ready'); },
+    // Tahan permainan tanpa mereset ular (misalnya setelah perisai terpakai)
+    hold: function () { acc = 0; s.queue = []; emit('hit'); setState('ready'); },
+    // Kurangi satu nyawa. Mengembalikan true jika nyawa habis; jika tidak, ular dan snack direset.
+    loseLife: function (title, text) {
+      s.lives--;
+      if (s.lives <= 0) return true;
+      emit('hit');
+      s.readyTitle = title;
+      s.readyText = (text || '').replace('{n}', s.lives);
+      placeSnake(); spawnFood(); setState('ready');
+      return false;
+    },
+    respawnFood: spawnFood,
+    occupied: occupied,
+    clearZone: clearZone,
+
+    start: function (modeId, diffKey, cols, rows) {
+      var mode = M.modes[modeId];
+      s = {
+        mode: mode, modeId: modeId, diffKey: diffKey, diff: M.config.difficulties[diffKey],
+        cols: cols, rows: rows, snake: [], dir: { x: 1, y: 0 }, queue: [],
+        food: null, items: [], door: null, zones: [], portals: null, tiles: null, noFood: false, obstacles: new Set(),
+        score: 0, eaten: 0, timeMs: 0, state: 'ready', result: null, newBest: false,
+        readyTitle: null, readyText: null, endTitle: null, unlocked: [],
+        best: M.storage.getBest(modeId, diffKey)
+      };
+      placeSnake();
+      M.renderer.clearEffects();
+      mode.onStart(s);
+      spawnFood();
+      startLoop(); // tidak membuat loop ganda
+      setState('ready');
+      if (hooks.onUpdate) hooks.onUpdate(s);
+    },
+
+    restart: function () { if (s) this.start(s.modeId, s.diffKey, s.cols, s.rows); },
+    stop: function () { stopLoop(); s = null; },
+
+    turn: function (name) {
+      if (!s || (s.state !== 'ready' && s.state !== 'playing')) return;
+      var d = DIRS[name];
+      var ref = s.queue.length ? s.queue[s.queue.length - 1] : s.dir;
+      if (ref.x === d.x && ref.y === d.y) { if (s.state === 'ready') setState('playing'); return; }
+      if (M.grid.isOpposite(ref, d)) return;   // tolak putar balik langsung
+      if (s.queue.length >= 2) return;         // antrean input maksimal 2
+      s.queue.push(d);
+      if (s.state === 'ready') setState('playing');
+    },
+
+    pause: function () { if (s && s.state === 'playing') setState('paused'); },
+    resume: function () { if (s && s.state === 'paused') setState('playing'); },
+    togglePause: function () {
+      if (!s) return;
+      if (s.state === 'playing') setState('paused');
+      else if (s.state === 'paused') setState('playing');
+    }
   };
-})();
+})(window.Mufa = window.Mufa || {});

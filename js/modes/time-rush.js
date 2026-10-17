@@ -1,36 +1,24 @@
-// ===== Mode: Time Rush =====
-ModeRegistry.register({
-  id: "time-rush",
-  name: "Time Rush",
-  desc: "60 detik, kejar skor.",
-  ready: true,
-  config: { stepMs: 140, growOnEat: true, lives: 1, durationMs: 60000 },
+(function (M) {
+  var DURATION = 60000, SPEED_EVERY_MS = 10000;
 
-  onStart(ctx) {
-    ctx.timeLeft = 60;
-    ctx._lastSpeedUpSec = 0;
-  },
+  function fmt(ms) {
+    var t = Math.ceil(ms / 1000);
+    return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  }
 
-  onTick(ctx) {
-    const left = Math.max(0, 60 - ctx.elapsedMs / 1000);
-    ctx.timeLeft = Math.ceil(left);
-
-    const sec = Math.floor(ctx.elapsedMs / 1000);
-    if (sec > 0 && sec % 10 === 0 && sec !== ctx._lastSpeedUpSec) {
-      ctx._lastSpeedUpSec = sec;
-      ctx.stepMs = Math.max(ctx.minStepMs, ctx.stepMs - 8);
+  M.defineMode({
+    id: 'timeRush',
+    onStart: function (s) { s.remainingMs = DURATION; },
+    onTick: function (s, dt) {
+      s.remainingMs -= dt; // hanya jalan saat playing, jadi berhenti saat jeda
+      if (s.remainingMs <= 0) { s.remainingMs = 0; M.engine.end('game-over', 'Waktu Habis'); }
+    },
+    speedMs: function (s) {
+      var level = Math.floor((DURATION - s.remainingMs) / SPEED_EVERY_MS);
+      return Math.max(s.diff.minMs, s.diff.startMs - level * s.diff.stepMs);
+    },
+    getObjective: function (s) {
+      return [{ label: 'Waktu', value: fmt(s.remainingMs) }, { label: 'Panjang', value: s.snake.length }];
     }
-  },
-
-  onEat(ctx, kind) {
-    if (kind === "snack") ctx.score += CONFIG.SCORE_NORMAL;
-  },
-
-  isLose(ctx) {
-    return ctx.elapsedMs >= 60000;
-  },
-
-  getObjective(ctx) {
-    return "⏱ " + (ctx.timeLeft ?? 60) + "s";
-  },
-});
+  });
+})(window.Mufa = window.Mufa || {});

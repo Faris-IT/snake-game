@@ -1,46 +1,28 @@
-// ===== Mode: Combo Chain =====
-ModeRegistry.register({
-  id: "combo-chain",
-  name: "Combo Chain",
-  desc: "Rantai combo, jangan putus.",
-  ready: true,
-  config: { stepMs: 140, growOnEat: true, lives: 1 },
+(function (M) {
+  var WINDOW_MS = 5000, MAX = 5;
 
-  onStart(ctx) {
-    ctx.combo = 1;
-    ctx.comboTimer = 0;
-    ctx.comboWindow = 5000; // 5 detik
-    ctx.maxCombo = 5;
-    ctx.lastComboScore = 0;
-  },
-
-  onTick(ctx, dt) {
-    if (ctx.combo > 1) {
-      ctx.comboTimer += dt;
-      if (ctx.comboTimer >= ctx.comboWindow) {
-        ctx.combo = 1;
-        ctx.comboTimer = 0;
-        ctx.lastComboScore = 0;
-      }
+  M.defineMode({
+    id: 'combo',
+    onStart: function (s) {
+      s.combo = 1; s.comboMs = 0;
+      s.readyText = 'Makan snack berikutnya dalam 5 detik untuk menaikkan pengali hingga ×5.';
+    },
+    onTick: function (s, dt) {
+      if (s.comboMs <= 0) return;
+      s.comboMs -= dt;
+      if (s.comboMs <= 0) { s.comboMs = 0; s.combo = 1; }
+    },
+    onEat: function (s) {
+      s.combo = s.comboMs > 0 ? Math.min(MAX, s.combo + 1) : 1;
+      s.comboMs = WINDOW_MS;
+      s.maxCombo = Math.max(s.maxCombo || 1, s.combo);
+      return { points: M.config.points.snack * s.combo };
+    },
+    getObjective: function (s) {
+      return [
+        { label: 'Combo', value: '×' + s.combo },
+        { label: 'Sisa', value: s.comboMs > 0 ? (s.comboMs / 1000).toFixed(1) + 'd' : '—' }
+      ];
     }
-  },
-
-  onEat(ctx, kind) {
-    if (kind !== "snack") return;
-    const points = CONFIG.SCORE_NORMAL * ctx.combo;
-    ctx.score += points;
-    ctx.lastComboScore = points;
-    ctx.comboTimer = 0;
-    if (ctx.combo < ctx.maxCombo) ctx.combo++;
-  },
-
-  getObjective(ctx) {
-    const remain = ctx.combo > 1
-      ? Math.ceil((ctx.comboWindow - ctx.comboTimer) / 1000)
-      : 0;
-    const comboStr = ctx.combo > 1
-      ? "🔥 ×" + ctx.combo + (remain > 0 ? " (" + remain + "s)" : "")
-      : "×1";
-    return "Combo " + comboStr + " · +" + ctx.lastComboScore + " terakhir";
-  },
-});
+  });
+})(window.Mufa = window.Mufa || {});

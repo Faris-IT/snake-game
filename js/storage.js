@@ -1,110 +1,54 @@
-// ===== Storage: statistik, achievements, pengaturan =====
-const Storage = (() => {
-  const KEY_STATS = "mufa-snack.stats.v1";
-  const KEY_ACHV  = "mufa-snack.achievements.v1";
-  const KEY_SET   = "mufa-snack.settings.v1";
-  const KEY_BEST  = "mufa-snack.best.v1";
+(function (M) {
+  var KEY = 'mufa-snack:v1';
 
-  function load(key, fallback) {
+  function fresh() {
+    return {
+      settings: { mode: 'classic', difficulty: 'normal', theme: 'default', lang: 'id', sound: true, dpad: 'auto' },
+      stats: { games: 0, snacks: 0, wins: 0, byMode: {} },
+      best: {},
+      achievements: {}
+    };
+  }
+
+  function load() {
+    var d = fresh();
     try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return fallback;
-      return JSON.parse(raw);
-    } catch {
-      return fallback;
-    }
-  }
-  function save(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        Object.assign(d.settings, p.settings);
+        Object.assign(d.stats, p.stats);
+        d.best = p.best || {};
+        d.achievements = p.achievements || {};
+      }
+    } catch (e) { /* localStorage tidak tersedia atau rusak: mulai dari data baru */ }
+    return d;
   }
 
-  // ===== Stats =====
-  const defaultStats = {
-    totalGames: 0,
-    totalSnacks: 0,
-    totalWins: 0,
-    modeSessions: {},   // { modeId: count }
-    modeWins: {},       // { modeId: count }
-    firstPlayedAt: null,
-    lastPlayedAt: null,
+  var data = load();
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
+  }
+
+  M.storage = {
+    getBest: function (mode, diff) { return data.best[mode + ':' + diff] || 0; },
+    // Mengembalikan true jika skor ini rekor baru.
+    recordResult: function (mode, diff, score, snacks, won) {
+      data.stats.games++;
+      data.stats.snacks += snacks;
+      if (won) data.stats.wins++;
+      data.stats.byMode[mode] = (data.stats.byMode[mode] || 0) + 1;
+      var k = mode + ':' + diff, isNew = score > (data.best[k] || 0);
+      if (isNew) data.best[k] = score;
+      save();
+      return isNew;
+    },
+    getStats: function () { return data.stats; },
+    getSetting: function (k) { return data.settings[k]; },
+    setSetting: function (k, v) { data.settings[k] = v; save(); },
+    isUnlocked: function (id) { return !!data.achievements[id]; },
+    unlock: function (id) { if (!data.achievements[id]) { data.achievements[id] = Date.now(); save(); } },
+    reset: function () { data = fresh(); save(); }
   };
-  function getStats() { return Object.assign({}, defaultStats, load(KEY_STATS, {})); }
-  function saveStats(s) { save(KEY_STATS, s); }
-  function recordSession(modeId, opts = {}) {
-    const s = getStats();
-    s.totalGames++;
-    s.totalSnacks += opts.snacks || 0;
-    s.modeSessions[modeId] = (s.modeSessions[modeId] || 0) + 1;
-    if (opts.win) {
-      s.totalWins++;
-      s.modeWins[modeId] = (s.modeWins[modeId] || 0) + 1;
-    }
-    if (!s.firstPlayedAt) s.firstPlayedAt = Date.now();
-    s.lastPlayedAt = Date.now();
-    saveStats(s);
-  }
-  function getFavoriteMode() {
-    const s = getStats();
-    let best = null, bestCount = 0;
-    for (const [id, count] of Object.entries(s.modeSessions || {})) {
-      if (count > bestCount) { best = id; bestCount = count; }
-    }
-    return best;
-  }
-  function resetStats() { saveStats({}); }
-
-  // ===== Best scores =====
-  function loadBest() { return load(KEY_BEST, {}); }
-  function getBest(modeId) { return loadBest()[modeId] || 0; }
-  function submitScore(modeId, score) {
-    const map = loadBest();
-    if (score > (map[modeId] || 0)) {
-      map[modeId] = score;
-      save(KEY_BEST, map);
-      return true;
-    }
-    return false;
-  }
-
-  // ===== Achievements =====
-  const defaultAchv = { unlocked: {} }; // { achvId: timestamp }
-  function getAchievements() { return Object.assign({}, defaultAchv, load(KEY_ACHV, {})); }
-  function saveAchievements(a) { save(KEY_ACHV, a); }
-  function unlockAchievement(id) {
-    const a = getAchievements();
-    if (a.unlocked[id]) return false;
-    a.unlocked[id] = Date.now();
-    saveAchievements(a);
-    return true;
-  }
-  function isAchievementUnlocked(id) {
-    return !!getAchievements().unlocked[id];
-  }
-  function resetAchievements() { saveAchievements({}); }
-
-  // ===== Settings =====
-  const defaultSettings = {
-    sound: true,
-    theme: "default",
-    language: "id",
-  };
-  function getSettings() { return Object.assign({}, defaultSettings, load(KEY_SET, {})); }
-  function saveSettings(s) { save(KEY_SET, s); }
-  function updateSetting(key, value) {
-    const s = getSettings();
-    s[key] = value;
-    saveSettings(s);
-    return s;
-  }
-
-  return {
-    // stats
-    getStats, saveStats, recordSession, getFavoriteMode, resetStats,
-    // best
-    getBest, submitScore,
-    // achievements
-    getAchievements, unlockAchievement, isAchievementUnlocked, resetAchievements,
-    // settings
-    getSettings, saveSettings, updateSetting,
-  };
-})();
+})(window.Mufa = window.Mufa || {});

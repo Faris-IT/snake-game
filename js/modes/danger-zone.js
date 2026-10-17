@@ -1,139 +1,61 @@
-// ===== Mode: Danger Zone =====
-ModeRegistry.register({
-  id: "danger-zone",
-  name: "Danger Zone",
-  desc: "Hindari zona bahaya.",
-  ready: true,
-  config: { stepMs: 150, growOnEat: true, lives: 3 },
+(function (M) {
+  var R = M.random, LIVES = 3, FIRST_MS = 5000, WAVE_MS = 8000, WARN_MS = 2000, ACTIVE_MS = 5000;
 
-  onStart(ctx) {
-    ctx._dzTimer = 0;
-    ctx._dzInterval = 8000;      // 8 detik
-    ctx._dzWarnDuration = 4000;  // 4 detik peringatan
-    ctx._dzActiveZones = [];
-    ctx._dzWarningZones = [];
-    ctx._dzWarnStarted = 0;
-    spawnDangerZone(ctx);
-    refreshDangerTiles(ctx);
-  },
+  function inActive(s, p) {
+    return s.zones.some(function (z) { return z.phase === 'active' && z.x === p.x && z.y === p.y; });
+  }
 
-  onTick(ctx, dt) {
-    ctx._dzTimer += dt;
-    ctx._dzWarnStarted += dt;
+  // Mengembalikan true jika nyawa habis. Zona dibersihkan agar ular tidak muncul kembali di bahaya.
+  function hurt(s) {
+    s.zones = [];
+    s.waveTimer = WAVE_MS;
+    return M.engine.loseLife('Terkena bahaya', 'Sisa {n} nyawa. Semua zona dibersihkan.');
+  }
 
-    // Fase peringatan → aktif setelah 2 detik
-    if (ctx._dzWarningZones.length && ctx._dzWarnStarted >= ctx._dzWarnDuration) {
-      ctx._dzActiveZones = ctx._dzActiveZones.concat(ctx._dzWarningZones);
-      ctx._dzWarningZones = [];
-      ctx._dzWarnStarted = 0;
-      refreshDangerTiles(ctx);
-      // Snack & bonus yang berada di zona aktif → pindahkan
-      relocateSnackIfDanger(ctx);
-      relocateBonusIfDanger(ctx);
-    }
-
-    // Spawn zona baru tiap 8 detik
-    if (ctx._dzTimer >= ctx._dzInterval) {
-      ctx._dzTimer = 0;
-      spawnDangerZone(ctx);
-      refreshDangerTiles(ctx);
-    }
-  },
-
-  onAfterMove(ctx) {
-    const h = ctx.body[0];
-    const hit = ctx._dzActiveZones.some(z => z.x === h.x && z.y === h.y);
-    if (hit) {
-      ctx.lives--;
-      ctx._dzActiveZones = ctx._dzActiveZones.filter(z => !(z.x === h.x && z.y === h.y));
-      refreshDangerTiles(ctx);
-      if (ctx.lives <= 0) {
-        GameEngine.helpers.endGame();
+  function spawnWave(s) {
+    s.wave++;
+    var n = Math.max(1, Math.round((1 + Math.floor(s.wave / 3)) * s.diff.obstacles));
+    var maxCells = Math.floor(s.cols * s.rows * .25), have = {}, side = s.wave >= 4 ? 4 : 3;
+    s.zones.forEach(function (z) { have[z.x + ',' + z.y] = 1; });
+    for (var k = 0; k < n && s.zones.length < maxCells; k++) {
+      var w = R.int(2, side), h = R.int(2, side), x0 = R.int(0, s.cols - w), y0 = R.int(0, s.rows - h);
+      for (var y = y0; y < y0 + h; y++) for (var x = x0; x < x0 + w; x++) {
+        if (have[x + ',' + y] || (s.food && s.food.x === x && s.food.y === y)) continue;
+        have[x + ',' + y] = 1;
+        s.zones.push({ x: x, y: y, phase: 'warn', ms: WARN_MS });
       }
     }
-  },
+  }
 
-  // Snack selalu di sel aman (bukan zona aktif / warning)
-  spawnSnack(ctx) {
-    const pos = pickSafeCell(ctx);
-    if (pos) ctx.spawnSnackAt(pos);
-  },
-
-  isLose(ctx) {
-    return ctx.lives <= 0;
-  },
-
-  isWin() { return false; },
-
-  getObjective(ctx) {
-    return "❤ " + ctx.lives + " · Zona: " + ctx._dzActiveZones.length;
-  },
-});
-
-// ===== Helper Danger Zone =====
-
-// Apakah sel ini di zona aktif atau warning?
-function isCellDanger(ctx, x, y) {
-  if (ctx._dzActiveZones.some(z => z.x === x && z.y === y)) return true;
-  if (ctx._dzWarningZones.some(z => z.x === x && z.y === y)) return true;
-  return false;
-}
-
-// Pilih sel acak yang aman (bebas zona bahaya, tubuh, obstacle, snack, bonus)
-function pickSafeCell(ctx) {
-  const occupied = new Set();
-  ctx.body.forEach(s => occupied.add(`${s.x},${s.y}`));
-  ctx.obstacles.forEach(o => occupied.add(`${o.x},${o.y}`));
-  if (ctx.snack) occupied.add(`${ctx.snack.x},${ctx.snack.y}`);
-  if (ctx.bonus) occupied.add(`${ctx.bonus.x},${ctx.bonus.y}`);
-  ctx._dzActiveZones.forEach(z => occupied.add(`${z.x},${z.y}`));
-  ctx._dzWarningZones.forEach(z => occupied.add(`${z.x},${z.y}`));
-
-  const empty = [];
-  for (let y = 0; y < ctx.rows; y++) {
-    for (let x = 0; x < ctx.cols; x++) {
-      if (!occupied.has(`${x},${y}`)) empty.push({ x, y });
+  M.defineMode({
+    id: 'danger',
+    onStart: function (s) {
+      s.lives = LIVES; s.wave = 0; s.waveTimer = FIRST_MS;
+      s.readyText = 'Zona merah berkedip akan aktif dalam 2 detik. Segera tinggalkan.';
+    },
+    onTick: function (s, dt) {
+      s.waveTimer -= dt;
+      if (s.waveTimer <= 0) { s.waveTimer = WAVE_MS; spawnWave(s); }
+      var activated = false;
+      for (var i = s.zones.length - 1; i >= 0; i--) {
+        var z = s.zones[i];
+        z.ms -= dt;
+        if (z.ms > 0) continue;
+        if (z.phase === 'warn') { z.phase = 'active'; z.ms = ACTIVE_MS; activated = true; }
+        else s.zones.splice(i, 1);
+      }
+      if (activated && inActive(s, s.snake[0]) && hurt(s)) M.engine.end('game-over');
+    },
+    onMove: function (s, head) {
+      if (inActive(s, head) && hurt(s)) M.engine.end('game-over');
+    },
+    onCollision: function (s, type) { return hurt(s) ? 'game-over' : 'handled'; },
+    avoidCells: function (s) { return s.zones.map(function (z) { return z.x + ',' + z.y; }); },
+    getObjective: function (s) {
+      return [
+        { label: 'Waktu', value: M.scoring.formatTime(s.timeMs) },
+        { label: 'Nyawa', value: '♥'.repeat(Math.max(0, s.lives)) + '♡'.repeat(LIVES - Math.max(0, s.lives)) }
+      ];
     }
-  }
-  if (!empty.length) return null;
-  return empty[Math.floor(Math.random() * empty.length)];
-}
-
-// Jika snack saat ini berada di zona bahaya → pindahkan
-function relocateSnackIfDanger(ctx) {
-  if (!ctx.snack) return;
-  if (isCellDanger(ctx, ctx.snack.x, ctx.snack.y)) {
-    const pos = pickSafeCell(ctx);
-    if (pos) ctx.spawnSnackAt(pos);
-  }
-}
-
-// Jika bonus saat ini berada di zona bahaya → pindahkan
-function relocateBonusIfDanger(ctx) {
-  if (!ctx.bonus) return;
-  if (isCellDanger(ctx, ctx.bonus.x, ctx.bonus.y)) {
-    const pos = pickSafeCell(ctx);
-    if (pos) ctx.bonus = pos;
-  }
-}
-
-// Spawn zona peringatan baru
-function spawnDangerZone(ctx) {
-  const count = 3 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < count; i++) {
-    const cell = GameEngine.pickEmptyCell();
-    if (cell) {
-      const dupA = ctx._dzActiveZones.some(z => z.x === cell.x && z.y === cell.y);
-      const dupW = ctx._dzWarningZones.some(z => z.x === cell.x && z.y === cell.y);
-      if (!dupA && !dupW) ctx._dzWarningZones.push(cell);
-    }
-  }
-}
-
-// Sinkronkan tiles untuk renderer
-function refreshDangerTiles(ctx) {
-  const tiles = [];
-  ctx._dzActiveZones.forEach(z => tiles.push({ x: z.x, y: z.y, kind: "danger" }));
-  ctx._dzWarningZones.forEach(z => tiles.push({ x: z.x, y: z.y, kind: "warning" }));
-  ctx.setTiles(tiles);
-}
+  });
+})(window.Mufa = window.Mufa || {});

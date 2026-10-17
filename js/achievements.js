@@ -1,54 +1,36 @@
-// ===== Definisi Achievements =====
-const Achievements = (() => {
-  const LIST = [
-    { id: "first_snack", name: "First Snack",    desc: "Makan snack pertama kali.",     icon: "🍎" },
-    { id: "first_game",  name: "Selamat Datang", desc: "Selesaikan sesi pertama.",      icon: "🎮" },
-    { id: "score_100",   name: "Skor 100",       desc: "Capai skor 100 dalam mode apa pun.", icon: "💯" },
-    { id: "score_500",   name: "Skor 500",       desc: "Capai skor 500 dalam mode apa pun.", icon: "🔥" },
-    { id: "score_1000",  name: "Skor 1000",      desc: "Capai skor 1000 dalam mode apa pun.", icon: "💎" },
-    { id: "survivor",    name: "Survivor",       desc: "Mainkan Endless Survival sampai skor 200.", icon: "🛡" },
-    { id: "speed_runner",name: "Speed Runner",   desc: "Capai skor 200 di Time Rush.",  icon: "⚡" },
-    { id: "explorer",    name: "Explorer",       desc: "Mainkan 6 mode berbeda.",       icon: "🧭" },
-    { id: "collector",   name: "Kolektor",       desc: "Makan total 100 snack.",        icon: "📦" },
-    { id: "master",      name: "Master Mufa",    desc: "Mainkan seluruh 12 mode.",      icon: "👑" },
+(function (M) {
+  function win(mode) { return function (s) { return s.modeId === mode && s.result === 'victory'; }; }
+
+  // test(s, stats) dievaluasi setiap sesi selesai, setelah statistik diperbarui.
+  var LIST = [
+    { id: 'first_snack',  name: 'First Snack',        desc: 'Makan snack pertamamu.',                          test: function (s, st) { return st.snacks >= 1; } },
+    { id: 'speed_runner', name: 'Speed Runner',       desc: 'Selesaikan satu sesi Time Rush hingga waktu habis.', test: function (s) { return s.modeId === 'timeRush' && s.endTitle === 'Waktu Habis'; } },
+    { id: 'survivor',     name: 'Survivor',           desc: 'Capai 300 poin di Endless Survival.',             test: function (s) { return s.modeId === 'endless' && s.score >= 300; } },
+    { id: 'first_win',    name: 'Pemenang',           desc: 'Menangkan mode apa pun.',                         test: function (s) { return s.result === 'victory'; } },
+    { id: 'maze_runner',  name: 'Pelari Labirin',     desc: 'Capai Level 5 di Maze Runner.',                   test: function (s) { return s.modeId === 'maze' && s.level >= 5; } },
+    { id: 'hunter',       name: 'Pemburu Snack',      desc: 'Selesaikan target Snack Hunter.',                 test: win('hunter') },
+    { id: 'portal',       name: 'Penjelajah Portal',  desc: 'Selesaikan misi Portal Snack.',                   test: win('portal') },
+    { id: 'chameleon',    name: 'Bunglon',            desc: 'Selesaikan misi Color Rules.',                    test: win('color') },
+    { id: 'path',         name: 'Penata Jalur',       desc: 'Capai Level 3 di Path Master.',                   test: function (s) { return s.modeId === 'path' && s.level >= 3; } },
+    { id: 'combo5',       name: 'Combo Master',       desc: 'Capai pengali ×5 di Combo Chain.',                test: function (s) { return s.modeId === 'combo' && (s.maxCombo || 0) >= 5; } },
+    { id: 'snack_100',    name: 'Pemakan Snack',      desc: 'Makan 100 snack secara total.',                   test: function (s, st) { return st.snacks >= 100; } },
+    { id: 'veteran',      name: 'Veteran',            desc: 'Mainkan 25 sesi.',                                test: function (s, st) { return st.games >= 25; } },
+    { id: 'explorer',     name: 'Penjelajah Mode',    desc: 'Mainkan semua 12 mode.',                          test: function (s, st) { return Object.keys(st.byMode).length >= M.config.modes.length; } }
   ];
 
-  function checkOnGameEnd(opts) {
-    // opts: { modeId, score, snacks, win }
-    const stats = Storage.getStats();
-    const unlocked = [];
-
-    if (opts.snacks >= 1 && Storage.unlockAchievement("first_snack")) unlocked.push("first_snack");
-    if (Storage.unlockAchievement("first_game")) unlocked.push("first_game");
-
-    if (opts.score >= 100 && Storage.unlockAchievement("score_100")) unlocked.push("score_100");
-    if (opts.score >= 500 && Storage.unlockAchievement("score_500")) unlocked.push("score_500");
-    if (opts.score >= 1000 && Storage.unlockAchievement("score_1000")) unlocked.push("score_1000");
-
-    if (opts.modeId === "endless-survival" && opts.score >= 200) {
-      if (Storage.unlockAchievement("survivor")) unlocked.push("survivor");
+  M.achievements = {
+    list: LIST,
+    byId: function (id) { return LIST.filter(function (a) { return a.id === id; })[0]; },
+    // Mengembalikan id pencapaian yang baru terbuka pada sesi ini.
+    check: function (s) {
+      var st = M.storage.getStats(), out = [];
+      LIST.forEach(function (a) {
+        if (M.storage.isUnlocked(a.id)) return;
+        var ok = false;
+        try { ok = a.test(s, st); } catch (e) {}
+        if (ok) { M.storage.unlock(a.id); out.push(a.id); }
+      });
+      return out;
     }
-    if (opts.modeId === "time-rush" && opts.score >= 200) {
-      if (Storage.unlockAchievement("speed_runner")) unlocked.push("speed_runner");
-    }
-
-    const distinctModes = Object.keys(stats.modeSessions || {}).length;
-    if (distinctModes >= 6 && Storage.unlockAchievement("explorer")) unlocked.push("explorer");
-    if (distinctModes >= 12 && Storage.unlockAchievement("master")) unlocked.push("master");
-
-    if ((stats.totalSnacks || 0) >= 100 && Storage.unlockAchievement("collector")) unlocked.push("collector");
-
-    return unlocked; // array of achievement ids yang baru terbuka
-  }
-
-  function checkOnSnack(totalSnacks) {
-    // dipanggil tiap makan snack — bisa untuk achievement realtime
-    if (totalSnacks >= 100 && Storage.unlockAchievement("collector")) return ["collector"];
-    return [];
-  }
-
-  function getList() { return LIST; }
-  function getById(id) { return LIST.find(a => a.id === id); }
-
-  return { getList, getById, checkOnGameEnd, checkOnSnack };
-})();
+  };
+})(window.Mufa = window.Mufa || {});
