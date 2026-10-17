@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://USERNAME.github.io/mufa-snack/"><b>▶ Main sekarang</b></a>
+  <a href="https://faris-it.github.io/snake-game/"><b>▶ Main sekarang</b></a>
 </p>
 
 <p align="center">
